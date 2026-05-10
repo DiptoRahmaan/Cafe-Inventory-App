@@ -17,7 +17,13 @@
   
   <style>
     :root {
-      --primary: #800000; --accent: #F5F5DC; --bg: #F5F5DC; --card: #FFFFFF; --text: #2D3748; --danger: #E53E3E; --gold: linear-gradient(45deg, #f1c40f, #d4af37, #f39c12);
+      --primary: #800000; 
+      --accent: #F5F5DC;  
+      --bg: #F5F5DC;      
+      --card: #FFFFFF;    
+      --text: #2D3748;
+      --danger: #E53E3E; 
+      --gold: linear-gradient(45deg, #f1c40f, #d4af37, #f39c12);
     }
     
     body { font-family: 'Cairo', 'Poppins', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
@@ -32,102 +38,208 @@
     .nav-item { display: flex; flex-direction: column; align-items: center; color: #A0AEC0; font-size: 13px; font-weight: 700; cursor: pointer; transition: transform 0.2s; }
     .nav-item.active { color: var(--primary); }
     .nav-item:active { transform: scale(0.90); }
+    .nav-icon { font-size: 24px; margin-bottom: -2px; }
 
     .screen { display: none; padding: 80px 20px 90px 20px; }
     .screen.active { display: block; animation: smoothSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes smoothSlideUp { 0% { opacity: 0; transform: translateY(20px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
 
     .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding-top: 10px; }
-    .category-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-    .category-img-box { width: 100%; aspect-ratio: 1 / 1; border-radius: 16px; overflow: hidden; border: 2px solid var(--primary); background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; }
+    .category-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; text-decoration: none; }
+    .category-img-box { width: 100%; aspect-ratio: 1 / 1; border-radius: 16px; overflow: hidden; border: 2px solid var(--primary); background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+    .category-item:active .category-img-box { transform: scale(0.92); }
     .category-img-box img { width: 100%; height: 100%; object-fit: cover; }
     .category-name { margin-top: 10px; font-size: 16px; font-weight: 700; color: var(--primary); text-align: center; }
 
+    @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+    .skeleton { background: #e2e8f0; background-image: linear-gradient(90deg, #e2e8f0 0px, #f8fafc 40px, #e2e8f0 80px); background-size: 1000px 100%; animation: shimmer 2s infinite linear; }
+    .skel-grid-item { display: flex; flex-direction: column; align-items: center; width: 100%; }
+    .skel-grid-box { width: 100%; aspect-ratio: 1 / 1; border-radius: 16px; margin-bottom: 10px; }
+    .skel-grid-text { width: 60%; height: 18px; border-radius: 4px; }
+    .skel-card { background: white; padding: 20px; border-radius: 16px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    .skel-img { width: 100%; height: 180px; border-radius: 12px; margin-bottom: 15px; }
+    .skel-title { width: 50%; height: 24px; border-radius: 4px; margin-bottom: 10px; }
+    .skel-qty { width: 20%; height: 30px; border-radius: 4px; margin-bottom: 15px; }
+    .skel-btn-row { width: 100%; height: 45px; border-radius: 10px; }
+
+    #login-screen.active { display: flex; flex-direction: column; justify-content: center; min-height: 100vh; padding: 20px; box-sizing: border-box; background: var(--bg); }
+    .user-recognition-box { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; transition: all 0.4s ease; opacity: 0; transform: scale(0.8); height: 0; overflow: hidden; }
+    .user-recognition-box.show { opacity: 1; transform: scale(1); height: auto; margin-bottom: 20px; overflow: visible; }
+    .profile-wrap { position: relative; padding: 6px; border-radius: 50%; display: inline-block; z-index: 1; }
+    .admin-glow::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 50%; background: var(--gold); animation: rotateGlow 3s linear infinite; z-index: -1; box-shadow: 0 0 20px rgba(241, 196, 15, 0.5); }
+    @keyframes rotateGlow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+    .login-profile-pic { width: 100px; height: 100px; border-radius: 50%; border: 3px solid white; object-fit: cover; background: #eee; display: block; position: relative; z-index: 2; }
+    .welcome-text { font-size: 22px; font-weight: 700; color: var(--primary); margin: 8px 0 0 0; }
+    .app-logo-container { text-align: center; margin-bottom: 30px; }
+    .app-logo { width: 200px; height: auto; max-height: 200px; object-fit: contain; }
+    .default-logo { font-size: 80px; color: var(--primary); }
+
     .card { background: var(--card); padding: 16px 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 15px; display: flex; flex-direction: column; position: relative; transition: all 0.3s ease; }
-    .item-image { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; margin-bottom: 12px; }
-    .item-title { font-size: 22px; font-weight: 700; margin: 0 0 4px 0; }
-    .item-qty { font-size: 28px; font-weight: bold; margin: 0; display: inline-block; }
+    .item-image { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; margin-bottom: 12px; background-color: #eee; }
+    .item-title { font-size: 22px; font-weight: 700; margin: 0 0 4px 0; padding-right: 40px; line-height: 1.2; }
+    .qty-container { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+    .item-qty { font-size: 28px; font-weight: bold; margin: 0; line-height: 1; transition: color 0.3s; display: inline-block; }
+    .low-stock-badge { background: #FFF5F5; color: var(--danger); font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: 1px solid #FEB2B2; display: flex; align-items: center; gap: 4px; }
+    .item-meta { font-size: 13px; color: #718096; margin: 0 0 14px 0; line-height: 1.4; }
     
+    .edit-icon { position: absolute; top: 20px; right: 20px; background: var(--accent); border-radius: 50%; width: 38px; height: 38px; display: flex; justify-content: center; align-items: center; font-size: 18px; border: 1px solid #ddd; cursor: pointer; z-index: 10;}
+    .action-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .action-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-size: 24px; font-weight: bold; color: white; cursor: pointer; transition: transform 0.1s, opacity 0.2s; }
+    .action-btn:active { transform: scale(0.85); opacity: 0.8; }
+    .btn-plus { background: #48BB78; }
+    .btn-minus { background: #F56565; }
+    .bulk-input { flex: 1; text-align: center; font-size: 22px; font-weight: bold; margin: 0; padding: 10px; border: 2px solid var(--accent); border-radius: 10px; background: #fff; color: var(--primary); }
+
+    /* UX POLISH: Animations & Empty States */
     @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.4); } 70% { box-shadow: 0 0 0 12px rgba(229, 62, 62, 0); } 100% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); } }
     .low-stock-card { border: 1px solid rgba(229, 62, 62, 0.4) !important; animation: pulseRed 2s infinite; }
+    
     @keyframes popNumber { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
     .pop-anim { animation: popNumber 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; opacity: 0; animation: fadeIn 0.4s forwards; }
+    @keyframes fadeIn { to { opacity: 1; } }
+    .empty-state-icon { font-size: 60px; margin-bottom: 15px; filter: grayscale(1); opacity: 0.5; }
+    .empty-state-text { font-size: 18px; font-weight: 700; color: #718096; margin-bottom: 15px; }
+
+    input, select { width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid #E2E8F0; border-radius: 12px; font-size: 16px; font-family: inherit; box-sizing: border-box; background: white; color: var(--text); }
+    .ltr-input { direction: ltr !important; text-align: center !important; }
+    #phone { border: 2px solid var(--primary); font-weight: 600; }
+    .btn-primary { width: 100%; padding: 15px; background: var(--primary); color: var(--accent); border: none; border-radius: 12px; font-size: 18px; font-weight: 700; box-shadow: 0 4px 6px rgba(128, 0, 0, 0.2); margin-bottom: 10px; cursor: pointer; transition: transform 0.1s; }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-secondary { background: white; color: #718096; border: 2px solid #E2E8F0; box-shadow: none; margin-bottom: 0; }
+
+    .search-wrapper { position: sticky; top: 60px; padding: 15px 20px 10px 20px; background: rgba(245, 245, 220, 0.80); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 90; margin: -20px -20px 15px -20px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    #product-search { border-radius: 30px; padding: 12px 20px; margin-bottom: 0; background: rgba(255, 255, 255, 0.7); border: 2px solid rgba(255, 255, 255, 0.9); box-shadow: 0 4px 10px rgba(0,0,0,0.03); font-weight: 600; color: var(--primary); }
+    #product-search:focus { background: white; border-color: var(--primary); outline: none; }
+
+    .log-card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 12px; border-right: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; }
+    .log-info { flex: 1; padding-right: 10px; }
+    .log-text { font-size: 16px; font-weight: 700; margin: 0 0 5px 0; color: #2D3748; }
+    .log-time { font-size: 12px; color: #718096; margin: 0; }
+    .log-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); flex-shrink: 0; }
+
+    /* OVERLAYS AND MODALS */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; display: flex; align-items: center; justify-content: center; }
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
-    .bottom-sheet { position: absolute; bottom: 0; left: 0; right: 0; background: white; padding: 25px 25px 40px 25px; border-radius: 24px 24px 0 0; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); box-sizing: border-box; }
+    
+    /* Bottom Sheet Style (For Editing) */
+    .bottom-sheet { position: absolute; bottom: 0; left: 0; right: 0; width: 100%; background: white; padding: 25px 25px 40px 25px; border-radius: 24px 24px 0 0; box-shadow: 0 -10px 25px rgba(0,0,0,0.1); transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); box-sizing: border-box; }
     .modal-overlay.active .bottom-sheet { transform: translateY(0); }
-    .popup-box { background: white; padding: 30px 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; transform: scale(0.9); transition: transform 0.3s; }
+    .sheet-handle { width: 40px; height: 5px; background: #E2E8F0; border-radius: 10px; margin: 0 auto 20px auto; }
+    
+    /* Center Popup Style (For Logout/Confirmations) */
+    .popup-box { background: white; padding: 30px 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); box-sizing: border-box; }
     .modal-overlay.active .popup-box { transform: scale(1); }
 
-    .action-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .action-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-size: 24px; font-weight: bold; color: white; cursor: pointer; }
-    .btn-plus { background: #48BB78; } .btn-minus { background: #F56565; }
-    .bulk-input { flex: 1; text-align: center; font-size: 22px; font-weight: bold; border: 2px solid var(--accent); border-radius: 10px; padding: 10px; }
+    /* UX POLISH: Developer Credit */
+    .dev-credit { margin-top: 20px; font-size: 11px; font-weight: 700; color: #CBD5E0; letter-spacing: 1px; text-transform: uppercase; }
 
-    #toast { position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); background: var(--primary); color: var(--accent); padding: 10px 25px; border-radius: 30px; font-size: 15px; font-weight: 700; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    #toast { position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); background-color: var(--primary); color: var(--accent); padding: 10px 25px; border-radius: 30px; font-size: 15px; font-weight: 700; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
     #toast.show { opacity: 1; }
+    .slide-down { max-height: 100px; opacity: 1; transition: 0.3s ease; overflow: visible; }
+    .slide-up { max-height: 0; opacity: 0; transition: 0.3s ease; overflow: hidden; margin-bottom: 0 !important; }
     .hidden { display: none !important; }
-    input, select { width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid #E2E8F0; border-radius: 12px; font-size: 16px; background: white; box-sizing: border-box; }
-    .btn-primary { width: 100%; padding: 15px; background: var(--primary); color: var(--accent); border: none; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; }
-    .btn-secondary { background: white; color: #718096; border: 2px solid #E2E8F0; margin-top: 10px;}
-    
-    .skeleton { background: #e2e8f0; background-image: linear-gradient(90deg, #e2e8f0 0px, #f8fafc 40px, #e2e8f0 80px); background-size: 1000px 100%; animation: shimmer 2s infinite linear; border-radius: 16px; width: 100%; aspect-ratio: 1/1; }
+    hr { border: none; border-top: 1px solid #ddd; margin: 15px 0; }
   </style>
 </head>
 <body>
+
   <div id="toast">Updated!</div>
-  
+
   <div id="login-screen" class="screen active">
-    <div id="recognition-box" style="display:none; flex-direction:column; align-items:center; margin-bottom:20px;">
-        <img id="recog-img" src="" style="width:100px; height:100px; border-radius:50%; border:3px solid white; object-fit:cover;">
-        <p id="recog-name" style="font-size:22px; font-weight:700; color:var(--primary); margin-top:10px;"></p>
+    <div id="recognition-box" class="user-recognition-box">
+        <div id="profile-wrap-el" class="profile-wrap"><img id="recog-img" src="" class="login-profile-pic"></div>
+        <p id="recog-name" class="welcome-text"></p>
     </div>
-    <div style="text-align:center; margin-bottom:30px;"><div id="default-logo-icon" style="font-size:80px;">☕</div><img id="custom-logo-login" src="" class="hidden" style="width:200px; object-fit:contain;"></div>
-    <input type="tel" id="phone" placeholder="Phone Number" style="direction:ltr; text-align:center;">
-    <div id="password-container" style="display:none;"><input type="password" id="admin-pass" placeholder="Password" style="direction:ltr; text-align:center;"></div>
+    <div id="logo-header-login" class="app-logo-container">
+        <img id="custom-logo-login" src="" class="app-logo hidden">
+        <div id="default-logo-icon" class="default-logo">☕</div>
+    </div>
+    <input type="tel" id="phone" class="ltr-input" placeholder="Phone Number">
+    <div id="password-container" class="slide-up">
+      <div style="position: relative; margin-bottom: 15px;">
+        <input type="password" id="admin-pass" class="ltr-input" placeholder="Password" style="margin-bottom: 0; padding-right: 45px;">
+        <button type="button" id="toggle-pass" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 22px; cursor: pointer; color: #718096; padding: 0;">👁️</button>
+      </div>
+    </div>
     <button id="login-btn" class="btn-primary">Log In</button>
   </div>
 
   <header id="app-header" class="app-header hidden">
     <button id="back-btn" class="back-btn hidden" onclick="window.goBack()">‹</button>
-    <button id="logout-btn" class="logout-btn" onclick="window.showLogoutModal()"><img id="header-avatar" src="" class="header-avatar"></button>
-    <div id="header-content" style="user-select:none;"><span id="header-title" style="font-weight:700; font-size:20px;">Aja Cafe</span></div>
+    <button id="logout-btn" class="logout-btn" onclick="window.showLogoutModal()">
+      <img id="header-avatar" src="" class="header-avatar">
+    </button>
+    
+    <div id="header-content" style="user-select: none;">
+        <img id="header-logo-img" src="" class="header-logo-img hidden">
+        <span id="header-title" style="font-weight:700; font-size:20px;">Aja Cafe</span>
+    </div>
     <button id="history-btn" class="header-icon hidden" onclick="window.showHistory()">🔔</button>
   </header>
 
   <div id="categories-screen" class="screen">
     <div id="dynamic-categories" class="category-grid">
-        <div class="skeleton"></div><div class="skeleton"></div>
+        <div class="skel-grid-item"><div class="skeleton skel-grid-box"></div><div class="skeleton skel-grid-text"></div></div>
+        <div class="skel-grid-item"><div class="skeleton skel-grid-box"></div><div class="skeleton skel-grid-text"></div></div>
+        <div class="skel-grid-item"><div class="skeleton skel-grid-box"></div><div class="skeleton skel-grid-text"></div></div>
+        <div class="skel-grid-item"><div class="skeleton skel-grid-box"></div><div class="skeleton skel-grid-text"></div></div>
     </div>
   </div>
 
   <div id="items-screen" class="screen">
-    <div class="search-wrapper"><input type="text" id="product-search" placeholder="Search / بحث..."></div>
+    <div class="search-wrapper"><input type="text" id="product-search" dir="auto" placeholder="Search / بحث عن منتج..."></div>
+    
+    <div id="empty-search" class="empty-state hidden">
+        <div class="empty-state-icon">☕</div>
+        <div class="empty-state-text">No products found.</div>
+        <button onclick="document.getElementById('product-search').value=''; document.getElementById('product-search').dispatchEvent(new Event('input'));" class="btn-primary btn-secondary" style="padding: 10px 20px; width: auto;">Clear Search</button>
+    </div>
+
     <div id="inventory-list"></div>
   </div>
   
   <div id="history-screen" class="screen"><div id="history-list"></div></div>
 
   <div id="admin-screen" class="screen">
-    <div class="card" style="border:2px solid #d4af37;">
-      <h3>Admin Settings</h3>
-      <label style="font-size:11px; font-weight:bold;">Home Screen Icon</label>
-      <input type="file" id="app-icon-input" accept="image/*"><button id="btn-save-app-icon" class="btn-primary" style="background:#2D3748; padding:10px;">Update Icon</button>
+    <div class="card" style="border: 2px solid #d4af37; background: white;">
+      <h3 style="margin-top:0; color: #d4af37;">1. Admin Settings (Dipu)</h3>
+      <label style="font-size:11px; font-weight:bold; color: var(--text);">Home Screen Icon (App Icon)</label>
+      <input type="file" id="app-icon-input" accept="image/*">
+      <button id="btn-save-app-icon" class="btn-primary" style="background: #2D3748; color: white; padding: 10px; font-size:14px;">Update Home Icon</button>
       <hr>
-      <label style="font-size:11px; font-weight:bold;">Login Logo (Big)</label>
-      <input type="file" id="logo-image-input" accept="image/*"><button id="btn-save-logo" class="btn-primary" style="background:#2D3748; padding:10px;">Update Login Logo</button>
+      <label style="font-size:11px; font-weight:bold; color: var(--text);">Login Logo (Big)</label>
+      <input type="file" id="logo-image-input" accept="image/*">
+      <button id="btn-save-logo" class="btn-primary" style="background: #2D3748; color: white; padding: 10px; font-size:14px;">Update Login Logo</button>
       <hr>
-      <label style="font-size:11px; font-weight:bold;">Header Logo (Small)</label>
-      <input type="file" id="header-logo-input" accept="image/*"><button id="btn-save-header-logo" class="btn-primary" style="background:#2D3748; padding:10px;">Update Header Logo</button>
+      <label style="font-size:11px; font-weight:bold; color: var(--text);">Header Logo (Home Screen)</label>
+      <input type="file" id="header-logo-input" accept="image/*">
+      <button id="btn-save-header-logo" class="btn-primary" style="background: #2D3748; color: white; padding: 10px; font-size:14px;">Update Header Logo</button>
       <hr>
-      <label style="font-size:11px; font-weight:bold;">Admin Profile Picture</label>
-      <input type="file" id="admin-image-input" accept="image/*"><button id="btn-save-admin-pic" class="btn-primary" style="background:#d4af37; color:#000; padding:10px;">Update My Photo</button>
+      <label style="font-size:11px; font-weight:bold; color: var(--text);">Admin Profile Picture</label>
+      <input type="file" id="admin-image-input" accept="image/*">
+      <button id="btn-save-admin-pic" class="btn-primary" style="background: #d4af37; color: #000; padding: 10px; font-size:14px;">Update My Photo</button>
     </div>
-    <div class="card"><h3>Add Category</h3><input type="file" id="new-cat-image"><input type="text" id="new-cat-name" placeholder="Name"><button id="add-cat-btn" class="btn-primary">Save Category</button></div>
-    <div class="card"><h3>Add Product</h3><input type="file" id="new-item-image"><input type="text" id="new-item-name" placeholder="Name"><select id="new-item-category"></select><input type="number" id="new-item-qty" placeholder="Quantity"><button id="add-item-btn" class="btn-primary">Save Product</button></div>
-    <div class="card"><h3>Manage Workers</h3><input type="file" id="worker-image"><input type="text" id="worker-name-input" placeholder="Name"><input type="tel" id="worker-phone-input" placeholder="Phone"><button id="add-worker-btn" class="btn-primary">Authorize Worker</button><hr><select id="delete-worker-select"></select><button id="btn-delete-worker" class="btn-primary" style="background:var(--danger);">Remove Worker</button></div>
-    <div class="card" style="border:2px solid var(--danger);"><h3>Danger Zone</h3><button id="btn-clear-logs" class="btn-primary" style="background:var(--danger);" onclick="window.showClearHistoryModal()">🧹 Clear History</button></div>
+    <div class="card" style="border: 2px solid var(--primary); background: white;">
+      <h3 style="margin-top:0; color: var(--primary);">2. Add Category</h3>
+      <input type="file" id="new-cat-image" accept="image/*"><input type="text" id="new-cat-name" placeholder="Name"><button id="add-cat-btn" class="btn-primary">Save Category</button>
+    </div>
+    <div class="card" style="border: 2px solid var(--primary); background: white;">
+      <h3 style="margin-top:0; color: var(--primary);">3. Add Product</h3>
+      <input type="file" id="new-item-image" accept="image/*"><input type="text" id="new-item-name" placeholder="Name"><select id="new-item-category"></select><input type="number" id="new-item-qty" class="ltr-input" placeholder="Quantity"><button id="add-item-btn" class="btn-primary">Save Product</button>
+    </div>
+    <div class="card" style="border: 2px solid var(--primary); background: white;">
+      <h3 style="margin-top:0; color: var(--primary);">4. Manage Workers</h3>
+      <input type="file" id="worker-image" accept="image/*"><input type="text" id="worker-name-input" placeholder="Name"><input type="tel" id="worker-phone-input" class="ltr-input" placeholder="Phone"><button id="add-worker-btn" class="btn-primary">Authorize Worker</button>
+      <hr><select id="delete-worker-select"></select><button id="btn-delete-worker" class="btn-primary" style="background: var(--danger);">🗑️ Remove Worker</button>
+    </div>
+    <div class="card" style="border: 2px solid var(--danger); background: white;">
+      <h3 style="margin-top:0; color: var(--danger);">5. Danger Zone</h3>
+      <button id="btn-clear-logs" class="btn-primary" style="background: var(--danger); margin-bottom: 20px;" onclick="window.showClearHistoryModal()">🧹 Clear History</button>
+      <hr><select id="delete-cat-select"></select><button id="btn-delete-cat" class="btn-primary" style="background: var(--danger); margin-bottom: 20px;">🗑️ Delete Category</button>
+      <select id="delete-item-select"></select><button id="btn-delete-item" class="btn-primary" style="background: var(--danger);">🗑️ Delete Product</button>
+    </div>
   </div>
 
   <nav id="bottom-nav" class="bottom-nav hidden">
@@ -135,10 +247,46 @@
     <div id="nav-admin-tab" class="nav-item hidden" onclick="window.switchTab('admin-screen', this)">⚙️<span>Admin</span></div>
   </nav>
 
-  <div id="edit-modal" class="modal-overlay" onclick="if(event.target === this) window.closeEditModal()"><div class="bottom-sheet"><h3>Edit Product</h3><input type="hidden" id="edit-item-id"><input type="text" id="edit-item-name"><select id="edit-item-category"></select><button id="save-edit-btn" class="btn-primary">Save</button></div></div>
-  <div id="logout-modal" class="modal-overlay"><div class="popup-box"><h3>Log Out</h3><p>Log out of Aja Cafe?</p><button onclick="window.confirmLogout()" class="btn-primary" style="background:var(--danger);">Yes</button><button onclick="document.getElementById('logout-modal').classList.remove('active')" class="btn-primary btn-secondary">No</button><div style="margin-top:20px; font-size:11px; color:#ccc;">Version 2.0 • Crafted by Dipu</div></div></div>
-  <div id="clear-history-modal" class="modal-overlay"><div class="popup-box"><h3>Clear History</h3><p>Delete all logs?</p><button onclick="window.confirmClearHistory()" id="confirm-clear-btn" class="btn-primary" style="background:var(--danger);">Delete All</button><button onclick="document.getElementById('clear-history-modal').classList.remove('active')" class="btn-primary btn-secondary">Cancel</button></div></div>
-  <div id="dev-modal" class="modal-overlay"><div class="popup-box" style="background:#2D3748; color:white;"><h2>Aja Cafe UX</h2><p>Version 2.0</p><p>Engineered by Dipu</p><button onclick="document.getElementById('dev-modal').classList.remove('active')" class="btn-primary" style="background:#d4af37; color:#000;">Close</button></div></div>
+  <div id="edit-modal" class="modal-overlay" onclick="if(event.target === this) window.closeEditModal()">
+    <div class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <h3 style="margin-top:0; color: var(--primary);">Edit Product</h3>
+      <input type="hidden" id="edit-item-id">
+      <input type="file" id="edit-item-image" accept="image/*"><input type="text" id="edit-item-name" placeholder="Name"><select id="edit-item-category"></select>
+      <button id="save-edit-btn" class="btn-primary">Save Changes</button>
+      <button onclick="window.closeEditModal()" class="btn-primary btn-secondary">Cancel</button>
+    </div>
+  </div>
+
+  <div id="logout-modal" class="modal-overlay" onclick="if(event.target === this) document.getElementById('logout-modal').classList.remove('active')">
+    <div class="popup-box">
+      <h3 style="margin-top:0; color: var(--primary);">Log Out</h3>
+      <p style="color: var(--text); margin-bottom: 20px; font-weight: 600;">Are you sure you want to log out of Aja Cafe?</p>
+      <button onclick="window.confirmLogout()" class="btn-primary" style="background: var(--danger);">Yes, Log Out</button>
+      <button onclick="document.getElementById('logout-modal').classList.remove('active')" class="btn-primary btn-secondary" style="margin-bottom: 0;">Cancel</button>
+      <div class="dev-credit">Version 2.0 • Crafted by Dipu</div>
+    </div>
+  </div>
+
+  <div id="clear-history-modal" class="modal-overlay" onclick="if(event.target === this) document.getElementById('clear-history-modal').classList.remove('active')">
+    <div class="popup-box">
+      <h3 style="margin-top:0; color: var(--danger);">Clear History</h3>
+      <p style="color: var(--text); margin-bottom: 20px; font-weight: 600;">Are you sure you want to permanently delete all history logs?</p>
+      <button onclick="window.confirmClearHistory()" class="btn-primary" style="background: var(--danger);" id="confirm-clear-btn">Yes, Clear All</button>
+      <button onclick="document.getElementById('clear-history-modal').classList.remove('active')" class="btn-primary btn-secondary">Cancel</button>
+    </div>
+  </div>
+
+  <div id="dev-modal" class="modal-overlay" onclick="if(event.target === this) this.classList.remove('active')">
+    <div class="popup-box" style="background: #2D3748; color: white;">
+      <h2 style="margin:0 0 5px 0; color: #d4af37; font-weight: 700;">Aja Cafe UX</h2>
+      <p style="margin:0 0 20px 0; color: #A0AEC0; font-size: 13px; font-weight: 600;">Version 2.0</p>
+      <div style="font-size: 50px; margin-bottom: 15px;">🚀</div>
+      <p style="font-weight: 700; margin-bottom: 5px; font-size: 18px;">Engineered by Dipu</p>
+      <p style="font-size: 13px; color: #A0AEC0; margin-bottom: 25px; line-height: 1.5;">Powered by Firebase Cloud<br>Material Minimalist UI</p>
+      <button onclick="document.getElementById('dev-modal').classList.remove('active')" class="btn-primary" style="background: #d4af37; color: #000; margin-bottom: 0;">Awesome</button>
+    </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
@@ -146,192 +294,401 @@
     import { getFirestore, collection, addDoc, onSnapshot, query, where, updateDoc, doc, orderBy, limit, getDocs, deleteDoc, setDoc, getDoc, writeBatch, enableIndexedDbPersistence } 
     from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
     
-    const firebaseConfig = { apiKey: "AIzaSyDCJWRsyYRPs4moiK7AHhnIOL6wICq19mE", authDomain: "aja-cafe-inventory-v2.firebaseapp.com", projectId: "aja-cafe-inventory-v2", storageBucket: "aja-cafe-inventory-v2.firebasestorage.app", messagingSenderId: "965770821188", appId: "1:965770821188:web:281cc04d97d700ea374611" };
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    try {
+      const firebaseConfig = {
+        apiKey: "AIzaSyDCJWRsyYRPs4moiK7AHhnIOL6wICq19mE",
+        authDomain: "aja-cafe-inventory-v2.firebaseapp.com",
+        projectId: "aja-cafe-inventory-v2",
+        storageBucket: "aja-cafe-inventory-v2.firebasestorage.app",
+        messagingSenderId: "965770821188",
+        appId: "1:965770821188:web:281cc04d97d700ea374611"
+      };
 
-    enableIndexedDbPersistence(db).catch(() => {});
-    signInAnonymously(auth);
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      signInAnonymously(auth).catch((error) => { console.error("Auth Error:", error); });
+      const db = getFirestore(app);
 
-    let currentUser = "", currentUserImage = "", isAdmin = false, recognizedUser = null;
-    window.showToast = (m) => { const t = document.getElementById('toast'); t.innerText = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); };
-    if (!history.state) history.replaceState({page: 'home'}, "");
+      // ADDED FROM PHASE 19: Offline Persistence (Stops rate limit crashes)
+      enableIndexedDbPersistence(db).catch((err) => { console.warn("Persistence failed", err.code); });
 
-    auth.onAuthStateChanged((user) => { 
-      if (user) { 
-        loadSettings();
-        const session = localStorage.getItem("ajaSession");
-        if(session) {
-          const data = JSON.parse(session);
-          currentUser = data.name; currentUserImage = data.image; isAdmin = data.isAdmin; recognizedUser = { name: data.name, phone: data.phone };
-          document.getElementById('header-avatar').src = currentUserImage;
-          document.getElementById('login-screen').classList.remove('active'); document.getElementById('categories-screen').classList.add('active');
-          document.getElementById('app-header').classList.remove('hidden'); document.getElementById('bottom-nav').classList.remove('hidden');
-          document.getElementById('history-btn').classList.remove('hidden'); 
-          if(isAdmin) { document.getElementById('nav-admin-tab').classList.remove('hidden'); }
-          startCategoryListener(); 
-        }
-      } 
-    });
+      let currentUser = "", currentUserImage = "", currentEditOldImage = "", isAdmin = false, recognizedUser = null;
 
-    async function loadSettings() {
-      const sDoc = await getDoc(doc(db, "admin", "settings"));
-      if(sDoc.exists()) {
-          const data = sDoc.data();
-          if(data.logoUrl) { document.getElementById('custom-logo-login').src = data.logoUrl; document.getElementById('custom-logo-login').classList.remove('hidden'); document.getElementById('default-logo-icon').classList.add('hidden'); }
-          if(data.headerLogoUrl) { document.getElementById('header-logo-img').src = data.headerLogoUrl; document.getElementById('header-logo-img').classList.remove('hidden'); document.getElementById('header-title').classList.add('hidden'); }
-          if(data.appIconUrl) { 
-            document.getElementById('apple-icon').href = data.appIconUrl;
-            const manifest = { name: "Aja Cafe", short_name: "Aja Cafe", start_url: window.location.pathname, display: "standalone", icons: [{ src: data.appIconUrl, sizes: "512x512", type: "image/png" }] };
-            document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:'application/json'}));
+      window.showToast = function(m) { 
+        const t = document.getElementById('toast'); t.innerText = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); 
+      };
+
+      if (!history.state) { history.replaceState({page: 'home'}, ""); }
+
+      auth.onAuthStateChanged((user) => { 
+        if (user) { 
+          loadSettings(); 
+          const session = localStorage.getItem("ajaSession");
+          if(session) {
+            try {
+                const data = JSON.parse(session);
+                currentUser = data.name; currentUserImage = data.image; isAdmin = data.isAdmin; recognizedUser = { name: data.name, phone: data.phone };
+                document.getElementById('header-avatar').src = currentUserImage;
+                history.replaceState({page: 'home'}, ""); 
+                document.getElementById('login-screen').classList.remove('active'); document.getElementById('categories-screen').classList.add('active');
+                document.getElementById('app-header').classList.remove('hidden'); document.getElementById('bottom-nav').classList.remove('hidden');
+                document.getElementById('history-btn').classList.remove('hidden'); 
+                
+                if(isAdmin) {
+                    document.getElementById('nav-admin-tab').classList.remove('hidden');
+                    startInventoryListener(); startWorkerListener();
+                } else {
+                    document.getElementById('nav-admin-tab').classList.add('hidden');
+                }
+                startCategoryListener(); 
+            } catch(e) { console.error("Session error", e); }
           }
-      }
-    }
+        } 
+      });
 
-    // SMART COMPRESSOR (Maintains Aspect Ratio)
-    function compressImage(file, callback) {
-      if (!file) { callback(""); return; }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas'); 
-          const maxSize = 512;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > maxSize) { height *= maxSize / width; width = maxSize; }
+      // UX POLISH: Easter Egg Logic
+      let eggCount = 0;
+      let eggTimer;
+      document.getElementById('header-content').addEventListener('click', () => {
+          eggCount++;
+          clearTimeout(eggTimer);
+          if(eggCount === 5) {
+              if(navigator.vibrate) navigator.vibrate([30, 50, 30, 50, 150]);
+              document.getElementById('dev-modal').classList.add('active');
+              eggCount = 0;
           } else {
-            if (height > maxSize) { width *= maxSize / height; height = maxSize; }
+              eggTimer = setTimeout(() => { eggCount = 0; }, 400);
           }
+      });
 
-          canvas.width = width; canvas.height = height;
-          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-          callback(canvas.toDataURL('image/png'));
-        }; img.src = e.target.result;
-      }; reader.readAsDataURL(file);
-    }
+      window.showLogoutModal = () => {
+          if(navigator.vibrate) navigator.vibrate([20]); 
+          document.getElementById('logout-modal').classList.add('active');
+      };
+      
+      window.confirmLogout = () => { localStorage.removeItem("ajaSession"); location.reload(); };
 
-    document.getElementById('phone').addEventListener('input', async (e) => {
-      const p = e.target.value;
-      if(p === '0508263340') {
-        document.getElementById('password-container').style.display = 'block';
-        const aDoc = await getDoc(doc(db, "admin", "profile"));
-        document.getElementById('recog-img').src = aDoc.exists() && aDoc.data().imageUrl ? aDoc.data().imageUrl : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-        document.getElementById('recog-name').innerText = "Hello, Dipu!";
-        document.getElementById('recognition-box').style.display = 'flex'; recognizedUser = { name: "Dipu", phone: "0508263340" };
-      } else if(p.length === 10) {
-          const snap = await getDocs(query(collection(db, "workers"), where("phone", "==", p)));
-          if(!snap.empty) {
-              recognizedUser = snap.docs[0].data();
-              document.getElementById('recog-img').src = recognizedUser.imageUrl; document.getElementById('recog-name').innerText = "Hello, " + recognizedUser.name;
-              document.getElementById('recognition-box').style.display = 'flex';
-          }
+      async function loadSettings() {
+        try {
+            const settingsDoc = await getDoc(doc(db, "admin", "settings"));
+            if(settingsDoc && settingsDoc.exists()) {
+                const data = settingsDoc.data();
+                if(data.logoUrl) { document.getElementById('custom-logo-login').src = data.logoUrl; document.getElementById('custom-logo-login').classList.remove('hidden'); document.getElementById('default-logo-icon').classList.add('hidden'); }
+                if(data.headerLogoUrl) { document.getElementById('header-logo-img').src = data.headerLogoUrl; document.getElementById('header-logo-img').classList.remove('hidden'); document.getElementById('header-title').classList.add('hidden'); }
+                if(data.appIconUrl) { 
+                    document.getElementById('apple-icon').href = data.appIconUrl; 
+                    document.getElementById('favicon').href = data.appIconUrl; 
+                    const manifest = { name: "Aja Cafe", short_name: "Aja Cafe", start_url: window.location.pathname, display: "standalone", background_color: "#F5F5DC", theme_color: "#800000", icons: [{ src: data.appIconUrl, sizes: "192x192 512x512", type: "image/png", purpose: "any maskable" }] };
+                    const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+                    document.getElementById('manifest-link').href = URL.createObjectURL(blob);
+                }
+            }
+        } catch(e) { console.error("Settings load block", e); }
       }
-    });
 
-    document.getElementById('login-btn').addEventListener('click', () => {
-      const ph = document.getElementById('phone').value, ps = document.getElementById('admin-pass').value;
-      if (!recognizedUser) return window.showToast("Unauthorized");
-      if (ph === '0508263340' && ps !== '082021') return window.showToast("Wrong Pass");
-      isAdmin = (ph === '0508263340'); currentUser = recognizedUser.name; currentUserImage = document.getElementById('recog-img').src;
-      localStorage.setItem("ajaSession", JSON.stringify({ name: currentUser, image: currentUserImage, phone: ph, isAdmin: isAdmin }));
-      location.reload();
-    });
+      // ADDED FROM PHASE 20: SMART COMPRESSOR (Maintains Aspect Ratio)
+      function compressImage(file, callback) {
+        if (!file) { callback(""); return; }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas'); 
+            const maxSize = 512;
+            let width = img.width;
+            let height = img.height;
 
-    function startCategoryListener() {
-      onSnapshot(collection(db, "categories"), (s) => {
-        const list = document.getElementById('dynamic-categories'); list.innerHTML = '';
-        const addS = document.getElementById('new-item-category'); const editS = document.getElementById('edit-item-category');
-        if(addS) addS.innerHTML = ''; if(editS) editS.innerHTML = '';
-        s.forEach((d) => {
-          const c = d.data(); const sn = c.name.replace(/'/g, "\\'");
-          list.innerHTML += `<div class="category-item" onclick="window.showCategory('${sn}')"><div class="category-img-box"><img src="${c.imageUrl}"></div><div class="category-name">${c.name}</div></div>`;
-          if(addS) addS.innerHTML += `<option value="${c.name}">${c.name}</option>`;
-          if(editS) editS.innerHTML += `<option value="${c.name}">${c.name}</option>`;
-        });
+            if (width > height) {
+              if (width > maxSize) { height *= maxSize / width; width = maxSize; }
+            } else {
+              if (height > maxSize) { width *= maxSize / height; height = maxSize; }
+            }
+
+            canvas.width = width; canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            callback(canvas.toDataURL('image/png'));
+          }; img.src = e.target.result;
+        }; reader.readAsDataURL(file);
+      }
+
+      document.getElementById('phone').addEventListener('input', async (e) => {
+        const p = e.target.value;
+        if(p === '0508263340') {
+          document.getElementById('password-container').classList.replace('slide-up', 'slide-down');
+          try {
+              const adminDoc = await getDoc(doc(db, "admin", "profile"));
+              let imgUrl = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+              if(adminDoc && adminDoc.exists() && adminDoc.data().imageUrl) imgUrl = adminDoc.data().imageUrl;
+              document.getElementById('recog-img').src = imgUrl;
+              document.getElementById('recog-name').innerText = "Hello, Dipu!";
+              document.getElementById('profile-wrap-el').classList.add('admin-glow'); document.getElementById('recognition-box').classList.add('show'); document.getElementById('logo-header-login').classList.add('hidden');
+              recognizedUser = { name: "Dipu", phone: "0508263340" };
+          } catch(err) {
+              document.getElementById('recog-name').innerText = "Hello, Dipu!";
+              document.getElementById('profile-wrap-el').classList.add('admin-glow'); document.getElementById('recognition-box').classList.add('show'); document.getElementById('logo-header-login').classList.add('hidden');
+              recognizedUser = { name: "Dipu", phone: "0508263340" };
+          }
+        } else if(p.length === 10) {
+            try {
+                const snap = await getDocs(query(collection(db, "workers"), where("phone", "==", p)));
+                if(snap && !snap.empty) {
+                    recognizedUser = snap.docs[0].data();
+                    document.getElementById('recog-img').src = recognizedUser.imageUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                    document.getElementById('recog-name').innerText = "Hello, " + (recognizedUser.name || "Worker") + "!";
+                    document.getElementById('recognition-box').classList.add('show'); document.getElementById('logo-header-login').classList.add('hidden');
+                }
+            } catch(err) { console.error("Worker fetch block", err); }
+        } else {
+            document.getElementById('recognition-box').classList.remove('show'); document.getElementById('logo-header-login').classList.remove('hidden'); recognizedUser = null;
+        }
       });
-    }
 
-    window.showCategory = (cat, fromH = false) => {
-      if (!fromH) history.pushState({page: 'items', category: cat}, "");
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('items-screen').classList.add('active');
-      document.getElementById('header-title').innerText = cat; document.getElementById('back-btn').classList.remove('hidden');
-      onSnapshot(query(collection(db, "inventory"), where("category", "==", cat)), (s) => {
-        const list = document.getElementById('inventory-list'); list.innerHTML = '';
-        s.forEach(d => {
-          const i = d.data(); const isLow = i.quantity <= 5; const sn = i.name.replace(/'/g, "\\'");
-          list.innerHTML += `<div class="card ${isLow ? 'low-stock-card' : ''}">
-              ${isAdmin ? `<button class="edit-icon" onclick="window.openEditModal('${d.id}', '${sn}', '${i.category}')">✏️</button>` : ""}
-              <img src="${i.imageUrl}" class="item-image"><h3 class="item-title">${i.name}</h3>
-              <div class="qty-container"><p class="item-qty" id="val-${d.id}" style="color:${isLow?'var(--danger)':'var(--primary)'}">${i.quantity}</p></div>
-              <div class="action-row">
-                  <button class="action-btn btn-minus" onclick="window.updateQty('${d.id}', '${sn}', 'minus')">-</button>
-                  <input type="number" id="qty-${d.id}" value="1" class="bulk-input">
-                  <button class="action-btn btn-plus" onclick="window.updateQty('${d.id}', '${sn}', 'plus')">+</button>
-              </div>
-          </div>`;
-        });
+      document.getElementById('login-btn').addEventListener('click', () => {
+        const ph = document.getElementById('phone').value, ps = document.getElementById('admin-pass').value;
+        if (!recognizedUser) { if(navigator.vibrate) navigator.vibrate([100]); window.showToast("Unauthorized Number"); return; }
+        if (ph === '0508263340' && ps !== '082021') { if(navigator.vibrate) navigator.vibrate([100]); window.showToast("Wrong Password!"); return; }
+        
+        isAdmin = (ph === '0508263340'); currentUser = recognizedUser.name || "User"; currentUserImage = document.getElementById('recog-img').src;
+        document.getElementById('header-avatar').src = currentUserImage;
+        localStorage.setItem("ajaSession", JSON.stringify({ name: currentUser, image: currentUserImage, phone: ph, isAdmin: isAdmin }));
+        
+        history.replaceState({page: 'home'}, ""); 
+        
+        document.getElementById('login-screen').classList.remove('active'); document.getElementById('categories-screen').classList.add('active');
+        document.getElementById('app-header').classList.remove('hidden'); document.getElementById('bottom-nav').classList.remove('hidden');
+        document.getElementById('history-btn').classList.remove('hidden');
+        
+        if(isAdmin) { document.getElementById('nav-admin-tab').classList.remove('hidden'); startInventoryListener(); startWorkerListener(); } 
+        else { document.getElementById('nav-admin-tab').classList.add('hidden'); }
+        startCategoryListener(); 
       });
-    };
 
-    window.updateQty = (id, name, act) => {
-      const input = document.getElementById('qty-'+id); const v = parseInt(input.value); if(isNaN(v) || v <= 0) return;
-      const display = document.getElementById('val-'+id); let cur = parseInt(display.innerText); let n = act === 'plus' ? cur + v : cur - v;
-      if(n < 0) return window.showToast("Low stock!");
-      if(navigator.vibrate) navigator.vibrate(act==='plus'?[20]:[20,40]);
-      display.innerText = n; display.classList.add('pop-anim'); setTimeout(()=>display.classList.remove('pop-anim'),300);
-      updateDoc(doc(db, "inventory", id), { quantity: n, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() });
-      addDoc(collection(db, "logs"), { user: currentUser, userImage: currentUserImage, item: name, action: act==='plus'?'added':'took', amount: v, timestamp: Date.now(), dateString: new Date().toLocaleString() });
-    };
+      document.getElementById('btn-save-app-icon').addEventListener('click', () => {
+        const file = document.getElementById('app-icon-input').files[0]; if(!file) return;
+        compressImage(file, async (img) => { await setDoc(doc(db, "admin", "settings"), { appIconUrl: img }, { merge: true }); window.showToast("Icon Saved! Re-add to Home Screen."); });
+      });
 
-    window.showHistory = (fromH = false) => {
-        if(!fromH) history.pushState({page: 'history'}, "");
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('history-screen').classList.add('active');
-        onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(50)), (s) => {
-            const list = document.getElementById('history-list'); list.innerHTML = '';
-            s.forEach(d => { const l = d.data(); list.innerHTML += `<div class="log-card"><div class="log-info"><p class="log-text">${l.user} ${l.action==='added'?'🟢':'🔴'} ${l.amount} ${l.item}</p><p class="log-time">${l.dateString}</p></div><img src="${l.userImage}" class="log-avatar" style="width:40px; height:40px; border-radius:50%;"></div>`; });
-        });
-    };
+      // UX POLISH: Smart Search
+      document.getElementById('product-search').addEventListener('input', (e) => {
+          const s = e.target.value.toLowerCase();
+          let visibleCount = 0;
+          document.querySelectorAll('#inventory-list .card').forEach(c => {
+              const t = c.querySelector('.item-title');
+              if(t) {
+                  if(t.innerText.toLowerCase().includes(s)) { c.style.display = 'flex'; visibleCount++; }
+                  else { c.style.display = 'none'; }
+              }
+          });
+          
+          const emptyState = document.getElementById('empty-search');
+          if (visibleCount === 0 && s !== '') { emptyState.classList.remove('hidden'); } 
+          else { emptyState.classList.add('hidden'); }
+      });
 
-    window.switchTab = (id, el) => { history.pushState({page: id}, ""); document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); el.classList.add('active'); };
-    window.goBack = () => history.back();
-    window.addEventListener('popstate', (e) => { 
-        const page = e.state ? e.state.page : 'home'; 
-        if(page==='home') { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('categories-screen').classList.add('active'); document.getElementById('back-btn').classList.add('hidden'); }
-        else if(page==='items') window.showCategory(e.state.category, true);
-        else if(page==='history') window.showHistory(true);
-    });
+      function startCategoryListener() {
+        try {
+            onSnapshot(collection(db, "categories"), (s) => {
+              const list = document.getElementById('dynamic-categories');
+              const addS = document.getElementById('new-item-category'); const editS = document.getElementById('edit-item-category'); const delS = document.getElementById('delete-cat-select');
 
-    window.showLogoutModal = () => document.getElementById('logout-modal').classList.add('active');
-    window.confirmLogout = () => { localStorage.removeItem("ajaSession"); location.reload(); };
-    window.showClearHistoryModal = () => document.getElementById('clear-history-modal').classList.add('active');
-    window.confirmClearHistory = async () => {
-        const batch = writeBatch(db); const snap = await getDocs(collection(db, "logs"));
-        snap.forEach(d => batch.delete(doc(db, "logs", d.id))); await batch.commit();
-        document.getElementById('clear-history-modal').classList.remove('active'); window.showToast("Cleared!");
-    };
-    
-    // Easter Egg
-    let ec = 0; document.getElementById('header-content').onclick = () => { ec++; if(ec===5){ document.getElementById('dev-modal').classList.add('active'); ec=0; } };
+              if(list) list.innerHTML = ''; if(addS) addS.innerHTML = ''; if(editS) editS.innerHTML = ''; if(delS) delS.innerHTML = '<option value="">Delete Category...</option>';
 
-    window.openEditModal = (id, n, c) => { document.getElementById('edit-item-id').value = id; document.getElementById('edit-item-name').value = n; document.getElementById('edit-item-category').value = c; document.getElementById('edit-modal').classList.add('active'); };
-    window.closeEditModal = () => document.getElementById('edit-modal').classList.remove('active');
-    document.getElementById('save-edit-btn').onclick = () => { updateDoc(doc(db, "inventory", document.getElementById('edit-item-id').value), { name: document.getElementById('edit-item-name').value, category: document.getElementById('edit-item-category').value }); window.closeEditModal(); window.showToast("Updated!"); };
+              s.forEach((d) => {
+                const c = d.data(); const safeName = c.name ? c.name.replace(/'/g, "\\'") : "Unknown"; const img = c.imageUrl || '';
+                
+                if(list) list.innerHTML += `<div class="category-item" onclick="if(navigator.vibrate) navigator.vibrate([20]); window.showCategory('${safeName}')"><div class="category-img-box"><img src="${img}"></div><div class="category-name">${c.name || 'Unnamed'}</div></div>`;
+                
+                const o = `<option value="${safeName}">${c.name || 'Unnamed'}</option>`;
+                if(addS) addS.innerHTML += o; if(editS) editS.innerHTML += o; if(delS) delS.innerHTML += `<option value="${d.id}">${c.name || 'Unnamed'}</option>`;
+              });
+            });
+        } catch(err) { console.error("Category Load Crashed", err); }
+      }
 
-    // Admin Uploaders
-    document.getElementById('btn-save-logo').addEventListener('click', () => { const f = document.getElementById('logo-image-input').files[0]; if(f) compressImage(f, async (img) => { await setDoc(doc(db, "admin", "settings"), { logoUrl: img }, { merge: true }); window.showToast("Saved!"); }); });
-    document.getElementById('btn-save-header-logo').addEventListener('click', () => { const f = document.getElementById('header-logo-input').files[0]; if(f) compressImage(f, async (img) => { await setDoc(doc(db, "admin", "settings"), { headerLogoUrl: img }, { merge: true }); window.showToast("Saved!"); }); });
-    document.getElementById('btn-save-app-icon').addEventListener('click', () => { const f = document.getElementById('app-icon-input').files[0]; if(f) compressImage(f, async (img) => { await setDoc(doc(db, "admin", "settings"), { appIconUrl: img }, { merge: true }); window.showToast("Saved!"); }); });
-    document.getElementById('btn-save-admin-pic').addEventListener('click', () => { const f = document.getElementById('admin-image-input').files[0]; if(f) compressImage(f, async (img) => { await setDoc(doc(db, "admin", "profile"), { imageUrl: img }); window.showToast("Saved!"); }); });
+      function startInventoryListener() { 
+          try { onSnapshot(collection(db, "inventory"), (s) => { const dS = document.getElementById('delete-item-select'); if(dS) { dS.innerHTML = '<option value="">Delete Product...</option>'; s.forEach((d) => { dS.innerHTML += `<option value="${d.id}">${d.data().name || 'Unnamed'}</option>`; }); } }); } 
+          catch(err) { console.error("Inventory block"); }
+      }
 
-    document.getElementById('add-cat-btn').addEventListener('click', () => { const n = document.getElementById('new-cat-name').value, f = document.getElementById('new-cat-image').files[0]; if(n) compressImage(f, async (img) => { await addDoc(collection(db, "categories"), { name: n, imageUrl: img }); window.showToast("Saved!"); }); });
-    document.getElementById('add-item-btn').addEventListener('click', () => { const n = document.getElementById('new-item-name').value, c = document.getElementById('new-item-category').value, q = parseInt(document.getElementById('new-item-qty').value), f = document.getElementById('new-item-image').files[0]; if(n && c && q) compressImage(f, async (img) => { await addDoc(collection(db, "inventory"), { name: n, category: c, quantity: q, imageUrl: img, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() }); window.showToast("Saved!"); }); });
-    document.getElementById('add-worker-btn').addEventListener('click', () => { const n = document.getElementById('worker-name-input').value, p = document.getElementById('worker-phone-input').value, f = document.getElementById('worker-image').files[0]; if(n && p) compressImage(f, async (img) => { await addDoc(collection(db, "workers"), { name: n, phone: p, imageUrl: img }); window.showToast("Saved!"); }); });
+      function startWorkerListener() { 
+          try { onSnapshot(collection(db, "workers"), (s) => { const dS = document.getElementById('delete-worker-select'); if(dS) { dS.innerHTML = '<option value="">Select Worker to Delete...</option>'; s.forEach((d) => { dS.innerHTML += `<option value="${d.id}">${d.data().name || 'Unnamed'} (${d.data().phone || ''})</option>`; }); } }); } 
+          catch(err) { console.error("Worker block"); }
+      }
 
-    document.getElementById('btn-delete-worker').addEventListener('click', async () => { const id = document.getElementById('delete-worker-select').value; if(id) { await deleteDoc(doc(db, "workers", id)); window.showToast("Removed"); } });
+      window.showCategory = (cat, fromHistory = false) => { 
+        if (!fromHistory) history.pushState({page: 'items', category: cat}, ""); 
+
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('items-screen').classList.add('active'); document.getElementById('header-title').innerText = cat; document.getElementById('back-btn').classList.remove('hidden'); document.getElementById('logout-btn').classList.add('hidden');
+        document.getElementById('product-search').value = '';
+        document.getElementById('empty-search').classList.add('hidden'); // Reset empty state
+
+        const list = document.getElementById('inventory-list');
+        list.innerHTML = `
+          <div class="skel-card"><div class="skeleton skel-img"></div><div class="skeleton skel-title"></div><div class="skeleton skel-qty"></div><div class="skeleton skel-btn-row"></div></div>
+          <div class="skel-card"><div class="skeleton skel-img"></div><div class="skeleton skel-title"></div><div class="skeleton skel-qty"></div><div class="skeleton skel-btn-row"></div></div>
+        `;
+
+        try {
+            onSnapshot(query(collection(db, "inventory"), where("category", "==", cat)), (s) => { 
+              list.innerHTML = ''; 
+              s.forEach((d) => { 
+                const i = d.data(); 
+                const isLow = i.quantity <= 5;
+                const safeName = i.name ? i.name.replace(/'/g, "\\'") : "Unknown"; 
+                const img = i.imageUrl || '';
+                const qty = i.quantity || 0;
+
+                // UX POLISH: Added low-stock-card class for the pulsing red glow
+                list.innerHTML += `
+                <div class="card ${isLow ? 'low-stock-card' : ''}">
+                    ${isAdmin ? `<button class="edit-icon" onclick="window.openEditModal('${d.id}', '${safeName}', '${i.category}', '${img}')">✏️</button>` : ""}
+                    ${img ? `<img src="${img}" class="item-image">` : ""}
+                    <h3 class="item-title">${i.name || 'Unnamed'}</h3>
+                    <div class="qty-container"><p class="item-qty" id="val-${d.id}" style="color:${isLow ? 'var(--danger)' : 'var(--primary)'}">${qty}</p>${isLow ? '<div class="low-stock-badge">⚠️ Low Stock</div>' : ''}</div>
+                    <p class="item-meta">By <span id="author-${d.id}">${i.lastUpdatedBy || 'System'}</span><br><span id="time-${d.id}">${i.lastUpdatedTime || ''}</span></p>
+                    <div class="action-row">
+                        <button class="action-btn btn-minus" onclick="window.updateBulkQty('${d.id}', '${safeName}', 'minus')">-</button>
+                        <input type="number" id="qty-${d.id}" value="1" min="1" class="bulk-input ltr-input">
+                        <button class="action-btn btn-plus" onclick="window.updateBulkQty('${d.id}', '${safeName}', 'plus')">+</button>
+                    </div>
+                </div>`; 
+              }); 
+            }); 
+        } catch(err) { window.showToast("Load Error"); }
+      };
+
+      // UX POLISH: Haptic Feedback and Pop Animations
+      window.updateBulkQty = (id, name, act) => { 
+        const input = document.getElementById('qty-'+id); const v = parseInt(input.value); if(isNaN(v) || v <= 0) return;
+        const display = document.getElementById('val-'+id); let cur = parseInt(display.innerText); let n = act === 'plus' ? cur + v : cur - v;
+        
+        // Haptic Patterns
+        const isPlus = act === 'plus';
+        if(navigator.vibrate) navigator.vibrate(isPlus ? [20] : [20, 40, 20]);
+        
+        if(n < 0) { 
+            if(navigator.vibrate) navigator.vibrate([100]);
+            return window.showToast("Low stock!"); 
+        }
+        
+        display.innerText = n; 
+        display.style.color = n <= 5 ? 'var(--danger)' : 'var(--primary)';
+        
+        // Pop Animation trigger
+        display.classList.remove('pop-anim');
+        void display.offsetWidth; // Trigger reflow to restart animation
+        display.classList.add('pop-anim');
+        setTimeout(() => { display.classList.remove('pop-anim'); }, 300);
+
+        // Instantly update Stock Pulse on the card
+        const cardEl = display.closest('.card');
+        if(n <= 5) { cardEl.classList.add('low-stock-card'); } else { cardEl.classList.remove('low-stock-card'); }
+
+        updateDoc(doc(db, "inventory", id), { quantity: n, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() }).catch(e => console.error("Sync Error"));
+        addDoc(collection(db, "logs"), { user: currentUser, userImage: currentUserImage, item: name, action: act === 'plus' ? 'added' : 'took', amount: v, timestamp: Date.now(), dateString: new Date().toLocaleString() }).catch(e => console.error("Log Error"));
+      };
+      
+      window.showHistory = (fromHistory = false) => {
+        if(navigator.vibrate && !fromHistory) navigator.vibrate([20]); 
+        if(!fromHistory) history.pushState({page: 'history'}, "");
+
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('history-screen').classList.add('active'); document.getElementById('header-title').innerText = 'History'; document.getElementById('back-btn').classList.remove('hidden'); document.getElementById('logout-btn').classList.add('hidden');
+        const list = document.getElementById('history-list');
+        list.innerHTML = `
+           <div class="log-card"><div class="log-info"><div class="skeleton skel-title" style="width:80%"></div><div class="skeleton skel-title" style="width:40%; height:12px;"></div></div><div class="skeleton log-avatar"></div></div>
+        `;
+        try {
+            onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(50)), (s) => {
+              list.innerHTML = '';
+              s.forEach(d => { const l = d.data(); list.innerHTML += `<div class="log-card"><div class="log-info"><p class="log-text">${l.user || 'Unknown'} ${l.action === 'added' ? '🟢 Added' : '🔴 Took'} ${l.amount || 0} ${l.item || 'Item'}</p><p class="log-time">${l.dateString || ''}</p></div><img src="${l.userImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="log-avatar"></div>`; });
+            });
+        } catch(err) { console.error("History Crashed"); }
+      };
+
+      window.switchTab = (id, el) => { 
+        if(navigator.vibrate) navigator.vibrate([20]); 
+        history.pushState({page: id}, ""); 
+
+        document.querySelectorAll('.screen:not(#login-screen)').forEach(s => s.classList.remove('active')); 
+        document.getElementById(id).classList.add('active'); 
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
+        el.classList.add('active'); 
+        document.getElementById('header-title').innerText = id === 'admin-screen' ? 'Admin Panel' : 'Aja Cafe'; 
+        document.getElementById('back-btn').classList.add('hidden'); 
+        document.getElementById('logout-btn').classList.remove('hidden');
+      };
+      
+      window.goBack = () => { 
+        if(navigator.vibrate) navigator.vibrate([20]); 
+        history.back(); 
+      };
+
+      window.addEventListener('popstate', (e) => {
+        const editModal = document.getElementById('edit-modal');
+        if(editModal.classList.contains('active')) { editModal.classList.remove('active'); history.pushState(e.state, ""); return; }
+        
+        const logoutModal = document.getElementById('logout-modal');
+        if(logoutModal.classList.contains('active')) { logoutModal.classList.remove('active'); history.pushState(e.state, ""); return; }
+        
+        const clearModal = document.getElementById('clear-history-modal');
+        if(clearModal.classList.contains('active')) { clearModal.classList.remove('active'); history.pushState(e.state, ""); return; }
+        
+        const devModal = document.getElementById('dev-modal');
+        if(devModal.classList.contains('active')) { devModal.classList.remove('active'); history.pushState(e.state, ""); return; }
+
+        const page = (e.state && e.state.page) ? e.state.page : 'home';
+        document.querySelectorAll('.screen:not(#login-screen)').forEach(s => s.classList.remove('active')); 
+
+        if (page === 'admin-screen' && isAdmin) {
+            document.getElementById('admin-screen').classList.add('active'); 
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
+            document.getElementById('nav-admin-tab').classList.add('active'); 
+            document.getElementById('header-title').innerText = 'Admin Panel'; 
+            document.getElementById('back-btn').classList.add('hidden'); 
+            document.getElementById('logout-btn').classList.remove('hidden');
+        } else if (page === 'history') {
+            window.showHistory(true);
+        } else if (page === 'items' && e.state.category) {
+            window.showCategory(e.state.category, true); 
+        } else {
+            document.getElementById('categories-screen').classList.add('active'); 
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
+            document.querySelector('.nav-item').classList.add('active'); 
+            document.getElementById('header-title').innerText = 'Aja Cafe'; 
+            document.getElementById('back-btn').classList.add('hidden'); 
+            document.getElementById('logout-btn').classList.remove('hidden');
+        }
+      });
+
+      window.openEditModal = (id, n, c, i) => { if(navigator.vibrate) navigator.vibrate([20]); document.getElementById('edit-item-id').value = id; document.getElementById('edit-item-name').value = n; document.getElementById('edit-item-category').value = c; currentEditOldImage = i; document.getElementById('edit-modal').classList.add('active'); };
+      window.closeEditModal = () => document.getElementById('edit-modal').classList.remove('active');
+
+      document.getElementById('btn-save-logo').addEventListener('click', () => { const f = document.getElementById('logo-image-input').files[0]; if(f) compressImage(f, async (img) => { await setDoc(doc(db, "admin", "settings"), { logoUrl: img }, { merge: true }); window.showToast("Saved!"); }); });
+      document.getElementById('btn-save-header-logo').addEventListener('click', () => { const f = document.getElementById('header-logo-input').files[0]; if(f) compressImage(f, async (img) => { await setDoc(doc(db, "admin", "settings"), { headerLogoUrl: img }, { merge: true }); window.showToast("Saved!"); }); });
+      document.getElementById('btn-save-admin-pic').addEventListener('click', () => { const f = document.getElementById('admin-image-input').files[0]; if(f) compressImage(f, async (img) => { await setDoc(doc(db, "admin", "profile"), { imageUrl: img }); window.showToast("Saved!"); }); });
+      document.getElementById('add-cat-btn').addEventListener('click', () => { const n = document.getElementById('new-cat-name').value, f = document.getElementById('new-cat-image').files[0]; if(n) { compressImage(f, async (img) => { await addDoc(collection(db, "categories"), { name: n, imageUrl: img }); window.showToast("Category Created!"); }); } });
+      document.getElementById('add-item-btn').addEventListener('click', () => { const n = document.getElementById('new-item-name').value, c = document.getElementById('new-item-category').value, q = parseInt(document.getElementById('new-item-qty').value), f = document.getElementById('new-item-image').files[0]; if(n && c && q) { compressImage(f, async (img) => { await addDoc(collection(db, "inventory"), { name: n, category: c, quantity: q, imageUrl: img, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() }); window.showToast("Added!"); }); } });
+      document.getElementById('add-worker-btn').addEventListener('click', () => { const n = document.getElementById('worker-name-input').value, p = document.getElementById('worker-phone-input').value, f = document.getElementById('worker-image').files[0]; if(n && p) { compressImage(f, async (img) => { await addDoc(collection(db, "workers"), { name: n, phone: p, imageUrl: img }); window.showToast("Authorized!"); }); } });
+      
+      document.getElementById('btn-delete-worker').addEventListener('click', async () => { const id = document.getElementById('delete-worker-select').value; if(id) { await deleteDoc(doc(db, "workers", id)); window.showToast("Removed"); } });
+      document.getElementById('btn-delete-cat').addEventListener('click', async () => { const id = document.getElementById('delete-cat-select').value; if(id) { await deleteDoc(doc(db, "categories", id)); window.showToast("Deleted"); } });
+      document.getElementById('btn-delete-item').addEventListener('click', async () => { const id = document.getElementById('delete-item-select').value; if(id) { await deleteDoc(doc(db, "inventory", id)); window.showToast("Deleted"); } });
+
+      window.showClearHistoryModal = () => { if(navigator.vibrate) navigator.vibrate([20]); document.getElementById('clear-history-modal').classList.add('active'); };
+      
+      window.confirmClearHistory = async () => {
+          const btn = document.getElementById('confirm-clear-btn'); btn.innerText = "Clearing..."; btn.disabled = true;
+          try {
+            const snap = await getDocs(collection(db, "logs")); const batch = writeBatch(db);
+            snap.forEach((d) => { batch.delete(doc(db, "logs", d.id)); }); await batch.commit();
+            document.getElementById('clear-history-modal').classList.remove('active'); window.showToast("History Cleared!"); 
+          } catch(e) { window.showToast("Error clearing history."); }
+          btn.innerText = "Yes, Clear All"; btn.disabled = false;
+      };
+
+      document.getElementById('save-edit-btn').addEventListener('click', () => { const id = document.getElementById('edit-item-id').value, n = document.getElementById('edit-item-name').value, c = document.getElementById('edit-item-category').value, f = document.getElementById('edit-item-image').files[0]; compressImage(f, async (img) => { await updateDoc(doc(db, "inventory", id), { name: n, category: c, imageUrl: img || currentEditOldImage, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() }); window.showToast("Updated!"); window.closeEditModal(); }); });
+
+    } catch (e) { console.error("Global crash", e); }
   </script>
 </body>
 </html>

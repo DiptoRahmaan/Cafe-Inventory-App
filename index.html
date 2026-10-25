@@ -234,8 +234,26 @@
       <input type="file" id="worker-image" accept="image/*"><input type="text" id="worker-name-input" placeholder="Name"><input type="tel" id="worker-phone-input" class="ltr-input" placeholder="Phone"><button id="add-worker-btn" class="btn-primary">Authorize Worker</button>
       <hr><select id="delete-worker-select"></select><button id="btn-delete-worker" class="btn-primary" style="background: var(--danger);">🗑️ Remove Worker</button>
     </div>
+
+       <div class="card" style="border: 2px solid #48BB78; background: white;">
+      <h3 style="margin-top:0; color: #48BB78;">5. Reports</h3>
+      
+      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+          <div style="flex: 1;">
+              <label style="font-size:11px; font-weight:bold; color: var(--text);">Start Date</label>
+              <input type="date" id="report-start-date" style="padding: 10px; margin-bottom: 0;">
+          </div>
+          <div style="flex: 1;">
+              <label style="font-size:11px; font-weight:bold; color: var(--text);">End Date</label>
+              <input type="date" id="report-end-date" style="padding: 10px; margin-bottom: 0;">
+          </div>
+      </div>
+
+      <button id="btn-download-logs" class="btn-primary" style="background: #48BB78; margin-top: 5px;">📊 Download Report</button>
+    </div>
+
     <div class="card" style="border: 2px solid var(--danger); background: white;">
-      <h3 style="margin-top:0; color: var(--danger);">5. Danger Zone</h3>
+      <h3 style="margin-top:0; color: var(--danger);">6. Danger Zone</h3>
       <button id="btn-clear-logs" class="btn-primary" style="background: var(--danger); margin-bottom: 20px;" onclick="window.showClearHistoryModal()">🧹 Clear History</button>
       <hr><select id="delete-cat-select"></select><button id="btn-delete-cat" class="btn-primary" style="background: var(--danger); margin-bottom: 20px;">🗑️ Delete Category</button>
       <select id="delete-item-select"></select><button id="btn-delete-item" class="btn-primary" style="background: var(--danger);">🗑️ Delete Product</button>
@@ -687,6 +705,81 @@
       };
 
       document.getElementById('save-edit-btn').addEventListener('click', () => { const id = document.getElementById('edit-item-id').value, n = document.getElementById('edit-item-name').value, c = document.getElementById('edit-item-category').value, f = document.getElementById('edit-item-image').files[0]; compressImage(f, async (img) => { await updateDoc(doc(db, "inventory", id), { name: n, category: c, imageUrl: img || currentEditOldImage, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() }); window.showToast("Updated!"); window.closeEditModal(); }); });
+           // EXCEL EXPORT LOGIC (WITH DATE RANGE)
+      document.getElementById('btn-download-logs').addEventListener('click', async () => {
+          if(navigator.vibrate) navigator.vibrate([20]);
+          
+          const startDate = document.getElementById('report-start-date').value;
+          const endDate = document.getElementById('report-end-date').value;
+
+          if (!startDate || !endDate) {
+              return window.showToast("Please select both Start and End dates.");
+          }
+
+          // Convert dates to exact milliseconds for Firebase
+          const startMillis = new Date(startDate + "T00:00:00").getTime();
+          const endMillis = new Date(endDate + "T23:59:59").getTime();
+
+          if (startMillis > endMillis) {
+              return window.showToast("Start date must be before End date.");
+          }
+
+          const btn = document.getElementById('btn-download-logs');
+          const originalText = btn.innerHTML;
+          btn.innerHTML = "⏳ Generating...";
+          btn.disabled = true;
+
+          try {
+              // Filter the database between the two times
+              const q = query(
+                  collection(db, "logs"),
+                  where("timestamp", ">=", startMillis),
+                  where("timestamp", "<=", endMillis),
+                  orderBy("timestamp", "desc")
+              );
+              
+              const snap = await getDocs(q);
+              
+              if (snap.empty) {
+                  window.showToast("No logs found for these dates.");
+                  btn.innerHTML = originalText;
+                  btn.disabled = false;
+                  return;
+              }
+
+              // Define Excel columns
+              let csvContent = "Date & Time,Worker Name,Action,Quantity,Product Name\n";
+              
+              snap.forEach(doc => {
+                  const l = doc.data();
+                  const date = l.dateString ? l.dateString.replace(/"/g, '""') : '';
+                  const user = l.user ? l.user.replace(/"/g, '""') : 'Unknown';
+                  const action = l.action === 'added' ? 'Added' : 'Took';
+                  const amount = l.amount || 0;
+                  const item = l.item ? l.item.replace(/"/g, '""') : 'Item';
+                  
+                  csvContent += `"${date}","${user}","${action}","${amount}","${item}"\n`;
+              });
+
+              // Add UTF-8 BOM so Excel reads Arabic characters correctly
+              const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+              const link = document.createElement("a");
+              link.href = URL.createObjectURL(blob);
+              link.download = `Aja_Cafe_Logs_${startDate}_to_${endDate}.csv`;
+              
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              
+              window.showToast("Report Downloaded!");
+          } catch (err) {
+              console.error("Export Failed", err);
+              window.showToast("Error generating report.");
+          }
+          
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+      });
 
     } catch (e) { console.error("Global crash", e); }
   </script>

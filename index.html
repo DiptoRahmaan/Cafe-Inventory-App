@@ -200,7 +200,14 @@
     <div id="inventory-list"></div>
   </div>
   
-  <div id="history-screen" class="screen"><div id="history-list"></div></div>
+  <div id="history-screen" class="screen">
+    <!-- ADMIN ACTION BAR IN MAIN HISTORY TAB -->
+    <div id="main-history-action-bar" class="hidden" style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button id="btn-main-toggle-log-select" class="btn-primary" style="background: #718096; flex: 1; margin-bottom: 0; font-size: 14px; padding: 10px;">☑️ Select Logs</button>
+        <button id="btn-main-delete-selected-logs" class="btn-primary hidden" style="background: var(--danger); flex: 1; margin-bottom: 0; font-size: 14px; padding: 10px;">🗑️ Delete Selected</button>
+    </div>
+    <div id="history-list"></div>
+  </div>
 
   <div id="admin-screen" class="screen">
     <div class="card" style="border: 2px solid #d4af37; background: white;">
@@ -235,8 +242,8 @@
       <hr><select id="delete-worker-select"></select><button id="btn-delete-worker" class="btn-primary" style="background: var(--danger);">🗑️ Remove Worker</button>
     </div>
 
-       <div class="card" style="border: 2px solid #48BB78; background: white;">
-      <h3 style="margin-top:0; color: #48BB78;">5. Reports</h3>
+    <div class="card" style="border: 2px solid #48BB78; background: white;">
+      <h3 style="margin-top:0; color: #48BB78;">5. Custom History & Reports</h3>
       
       <div style="display: flex; gap: 10px; margin-bottom: 10px;">
           <div style="flex: 1;">
@@ -249,12 +256,29 @@
           </div>
       </div>
 
-      <button id="btn-download-logs" class="btn-primary" style="background: #48BB78; margin-top: 5px;">📊 Download Report</button>
+      <div style="display: flex; gap: 10px; margin-top: 5px;">
+          <button id="btn-view-admin-logs" class="btn-primary" style="background: var(--primary); flex: 1; margin-bottom: 0; font-size: 15px; padding: 12px;">👁️ View Logs</button>
+          <button id="btn-download-logs" class="btn-primary" style="background: #48BB78; flex: 1; margin-bottom: 0; font-size: 15px; padding: 12px;">📊 Download Excel</button>
+      </div>
+
+      <div id="admin-history-results" class="hidden" style="margin-top: 15px; max-height: 380px; overflow-y: auto; border-top: 2px solid #eee; padding-top: 15px;"></div>
+      
+      <div id="admin-history-action-bar" class="hidden" style="display: flex; gap: 10px; margin-top: 10px;">
+          <button id="btn-toggle-log-select" class="btn-primary" style="background: #718096; flex: 1; margin-bottom: 0; font-size: 14px; padding: 10px;">☑️ Select Logs</button>
+          <button id="btn-delete-selected-logs" class="btn-primary hidden" style="background: var(--danger); flex: 1; margin-bottom: 0; font-size: 14px; padding: 10px;">🗑️ Delete Selected</button>
+      </div>
+    </div>
+
+    <!-- CLOUD DATABASE SETUP CARD -->
+    <div class="card" style="border: 2px solid #3182CE; background: white;">
+      <h3 style="margin-top:0; color: #3182CE;">6. Cloud Storage Setup</h3>
+      <p style="font-size:12px; color:#718096; margin-bottom:15px; font-weight:600; line-height: 1.4;">Tap once to automatically convert all heavy legacy photos in your database into fast cloud URLs. This speeds up the app instantly.</p>
+      <button id="btn-migrate-cloud" class="btn-primary" style="background: #3182CE; margin-bottom:0;" onclick="window.migrateDatabaseToCloud()">☁️ Auto-Migrate Images</button>
     </div>
 
     <div class="card" style="border: 2px solid var(--danger); background: white;">
-      <h3 style="margin-top:0; color: var(--danger);">6. Danger Zone</h3>
-      <button id="btn-clear-logs" class="btn-primary" style="background: var(--danger); margin-bottom: 20px;" onclick="window.showClearHistoryModal()">🧹 Clear History</button>
+      <h3 style="margin-top:0; color: var(--danger);">7. Danger Zone</h3>
+      <button id="btn-clear-logs" class="btn-primary" style="background: var(--danger); margin-bottom: 20px;" onclick="window.showClearHistoryModal()">🧹 Clear All History</button>
       <hr><select id="delete-cat-select"></select><button id="btn-delete-cat" class="btn-primary" style="background: var(--danger); margin-bottom: 20px;">🗑️ Delete Category</button>
       <select id="delete-item-select"></select><button id="btn-delete-item" class="btn-primary" style="background: var(--danger);">🗑️ Delete Product</button>
     </div>
@@ -327,16 +351,85 @@
       signInAnonymously(auth).catch((error) => { console.error("Auth Error:", error); });
       const db = getFirestore(app);
 
-      // ADDED FROM PHASE 19: Offline Persistence (Stops rate limit crashes)
       enableIndexedDbPersistence(db).catch((err) => { console.warn("Persistence failed", err.code); });
 
       let currentUser = "", currentUserImage = "", currentEditOldImage = "", isAdmin = false, recognizedUser = null;
+
+      let userAvatarMap = {};
+      let cachedRecentLogs = [];
+      let historyListenerStarted = false;
+      let historyCacheReady = false;
+
+      async function buildAvatarCache() {
+        try {
+          const aDoc = await getDoc(doc(db, "admin", "profile"));
+          if (aDoc.exists() && aDoc.data().imageUrl) userAvatarMap["Dipu"] = aDoc.data().imageUrl;
+          const wSnap = await getDocs(collection(db, "workers"));
+          wSnap.forEach(d => {
+            const w = d.data();
+            if (w.name && w.imageUrl) userAvatarMap[w.name] = w.imageUrl;
+          });
+        } catch(e) { console.warn("Avatar cache warning", e); }
+      }
+
+      function startBackgroundLogCache() {
+        if (historyListenerStarted) return;
+        historyListenerStarted = true;
+        onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(60)), (s) => {
+          cachedRecentLogs = [];
+          s.forEach(d => {
+            let l = d.data();
+            l.id = d.id; 
+            cachedRecentLogs.push(l);
+          });
+          historyCacheReady = true;
+          if (document.getElementById('history-screen').classList.contains('active')) {
+            renderHistoryList(cachedRecentLogs, document.getElementById('history-list'), false, isAdmin);
+            
+            // Reset main tab action bar state on live update
+            if (isAdmin) {
+                document.getElementById('btn-main-toggle-log-select').innerText = "☑️ Select Logs";
+                document.getElementById('btn-main-delete-selected-logs').classList.add('hidden');
+            }
+          }
+        });
+      }
+
+      function renderHistoryList(logsArray, container, isCardStyle = false, showCheckboxes = false) {
+        if (!container) return;
+        if (logsArray.length === 0) {
+          container.innerHTML = '<p style="text-align:center; color:#718096; font-weight:bold; margin: 25px 0;">No logs found. ☕</p>';
+          return;
+        }
+        const defaultAvatar = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+        const cardCustomStyle = isCardStyle ? 'style="background: #f8fafc; border: 1px solid #e2e8f0; border-right: 5px solid var(--primary);"' : '';
+        let html = '';
+        logsArray.forEach(l => {
+          const avatar = userAvatarMap[l.user] || l.userImage || (l.user === currentUser ? currentUserImage : '') || defaultAvatar;
+          const cbHtml = showCheckboxes ? `<input type="checkbox" class="admin-log-cb hidden" value="${l.id}" style="width:20px; height:20px; margin:0 12px 0 0; accent-color:var(--danger); flex-shrink:0;">` : '';
+          
+          html += `<div class="log-card" ${cardCustomStyle}>
+                      ${cbHtml}
+                      <div class="log-info">
+                          <p class="log-text">${l.user || 'Unknown'} ${l.action === 'added' ? '🟢 Added' : '🔴 Took'} ${l.amount || 0} ${l.item || 'Item'}</p>
+                          <p class="log-time">${l.dateString || ''}</p>
+                      </div>
+                      <img src="${avatar}" class="log-avatar" loading="lazy">
+                   </div>`;
+        });
+        container.innerHTML = html;
+      }
 
       window.showToast = function(m) { 
         const t = document.getElementById('toast'); t.innerText = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); 
       };
 
       if (!history.state) { history.replaceState({page: 'home'}, ""); }
+
+      document.getElementById('toggle-pass').addEventListener('click', () => {
+        const passInput = document.getElementById('admin-pass');
+        passInput.type = passInput.type === 'password' ? 'text' : 'password';
+      });
 
       auth.onAuthStateChanged((user) => { 
         if (user) { 
@@ -346,6 +439,7 @@
             try {
                 const data = JSON.parse(session);
                 currentUser = data.name; currentUserImage = data.image; isAdmin = data.isAdmin; recognizedUser = { name: data.name, phone: data.phone };
+                if (currentUser && currentUserImage) userAvatarMap[currentUser] = currentUserImage;
                 document.getElementById('header-avatar').src = currentUserImage;
                 history.replaceState({page: 'home'}, ""); 
                 document.getElementById('login-screen').classList.remove('active'); document.getElementById('categories-screen').classList.add('active');
@@ -358,13 +452,14 @@
                 } else {
                     document.getElementById('nav-admin-tab').classList.add('hidden');
                 }
-                startCategoryListener(); 
+                startCategoryListener();
+                buildAvatarCache();
+                startBackgroundLogCache();
             } catch(e) { console.error("Session error", e); }
           }
         } 
       });
 
-      // UX POLISH: Easter Egg Logic
       let eggCount = 0;
       let eggTimer;
       document.getElementById('header-content').addEventListener('click', () => {
@@ -404,7 +499,6 @@
         } catch(e) { console.error("Settings load block", e); }
       }
 
-      // ADDED FROM PHASE 20: SMART COMPRESSOR (Maintains Aspect Ratio)
       function compressImage(file, callback) {
         if (!file) { callback(""); return; }
         const reader = new FileReader();
@@ -429,9 +523,30 @@
         }; reader.readAsDataURL(file);
       }
 
+      // FREE CLOUD IMAGE HOSTING (ImgBB API)
+      async function uploadToCloud(file, callback) {
+        if (!file) { callback(""); return; }
+        compressImage(file, async (base64Str) => {
+          if (!base64Str.startsWith('data:image')) { callback(base64Str); return; } 
+          try {
+            const base64Data = base64Str.split(',')[1];
+            const formData = new FormData();
+            formData.append("image", base64Data);
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${atob('MGUyY2Q5YThmZGVmYjNiOWU5ODgwMTI0M2IwYTU3Mjk=')}`, { method: "POST", body: formData });
+            const data = await response.json();
+            if (data.success) { callback(data.data.url); } 
+            else { window.showToast("Cloud upload failed!"); callback(""); }
+          } catch (err) {
+            console.error("ImgBB Error:", err);
+            window.showToast("Network error during upload.");
+            callback("");
+          }
+        });
+      }
+
       document.getElementById('phone').addEventListener('input', async (e) => {
         const p = e.target.value;
-        if(p === '0508263340') {
+        if(btoa(p) === 'MDUwODI2MzM0MA==') {
           document.getElementById('password-container').classList.replace('slide-up', 'slide-down');
           try {
               const adminDoc = await getDoc(doc(db, "admin", "profile"));
@@ -440,11 +555,11 @@
               document.getElementById('recog-img').src = imgUrl;
               document.getElementById('recog-name').innerText = "Hello, Dipu!";
               document.getElementById('profile-wrap-el').classList.add('admin-glow'); document.getElementById('recognition-box').classList.add('show'); document.getElementById('logo-header-login').classList.add('hidden');
-              recognizedUser = { name: "Dipu", phone: "0508263340" };
+              recognizedUser = { name: "Dipu", phone: p };
           } catch(err) {
               document.getElementById('recog-name').innerText = "Hello, Dipu!";
               document.getElementById('profile-wrap-el').classList.add('admin-glow'); document.getElementById('recognition-box').classList.add('show'); document.getElementById('logo-header-login').classList.add('hidden');
-              recognizedUser = { name: "Dipu", phone: "0508263340" };
+              recognizedUser = { name: "Dipu", phone: p };
           }
         } else if(p.length === 10) {
             try {
@@ -464,9 +579,11 @@
       document.getElementById('login-btn').addEventListener('click', () => {
         const ph = document.getElementById('phone').value, ps = document.getElementById('admin-pass').value;
         if (!recognizedUser) { if(navigator.vibrate) navigator.vibrate([100]); window.showToast("Unauthorized Number"); return; }
-        if (ph === '0508263340' && ps !== '082021') { if(navigator.vibrate) navigator.vibrate([100]); window.showToast("Wrong Password!"); return; }
         
-        isAdmin = (ph === '0508263340'); currentUser = recognizedUser.name || "User"; currentUserImage = document.getElementById('recog-img').src;
+        if (btoa(ph) === 'MDUwODI2MzM0MA==' && btoa(ps) !== 'MDgyMDIx') { if(navigator.vibrate) navigator.vibrate([100]); window.showToast("Wrong Password!"); return; }
+        
+        isAdmin = (btoa(ph) === 'MDUwODI2MzM0MA=='); currentUser = recognizedUser.name || "User"; currentUserImage = document.getElementById('recog-img').src;
+        if (currentUser && currentUserImage) userAvatarMap[currentUser] = currentUserImage;
         document.getElementById('header-avatar').src = currentUserImage;
         localStorage.setItem("ajaSession", JSON.stringify({ name: currentUser, image: currentUserImage, phone: ph, isAdmin: isAdmin }));
         
@@ -478,15 +595,11 @@
         
         if(isAdmin) { document.getElementById('nav-admin-tab').classList.remove('hidden'); startInventoryListener(); startWorkerListener(); } 
         else { document.getElementById('nav-admin-tab').classList.add('hidden'); }
-        startCategoryListener(); 
+        startCategoryListener();
+        buildAvatarCache();
+        startBackgroundLogCache();
       });
 
-      document.getElementById('btn-save-app-icon').addEventListener('click', () => {
-        const file = document.getElementById('app-icon-input').files[0]; if(!file) return;
-        compressImage(file, async (img) => { await setDoc(doc(db, "admin", "settings"), { appIconUrl: img }, { merge: true }); window.showToast("Icon Saved! Re-add to Home Screen."); });
-      });
-
-      // UX POLISH: Smart Search
       document.getElementById('product-search').addEventListener('input', (e) => {
           const s = e.target.value.toLowerCase();
           let visibleCount = 0;
@@ -529,8 +642,17 @@
       }
 
       function startWorkerListener() { 
-          try { onSnapshot(collection(db, "workers"), (s) => { const dS = document.getElementById('delete-worker-select'); if(dS) { dS.innerHTML = '<option value="">Select Worker to Delete...</option>'; s.forEach((d) => { dS.innerHTML += `<option value="${d.id}">${d.data().name || 'Unnamed'} (${d.data().phone || ''})</option>`; }); } }); } 
-          catch(err) { console.error("Worker block"); }
+          try { 
+            onSnapshot(collection(db, "workers"), (s) => { 
+              const dS = document.getElementById('delete-worker-select'); 
+              if(dS) dS.innerHTML = '<option value="">Select Worker to Delete...</option>'; 
+              s.forEach((d) => { 
+                const w = d.data();
+                if (w.name && w.imageUrl) userAvatarMap[w.name] = w.imageUrl;
+                if(dS) dS.innerHTML += `<option value="${d.id}">${w.name || 'Unnamed'} (${w.phone || ''})</option>`; 
+              }); 
+            }); 
+          } catch(err) { console.error("Worker block"); }
       }
 
       window.showCategory = (cat, fromHistory = false) => { 
@@ -538,7 +660,7 @@
 
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('items-screen').classList.add('active'); document.getElementById('header-title').innerText = cat; document.getElementById('back-btn').classList.remove('hidden'); document.getElementById('logout-btn').classList.add('hidden');
         document.getElementById('product-search').value = '';
-        document.getElementById('empty-search').classList.add('hidden'); // Reset empty state
+        document.getElementById('empty-search').classList.add('hidden');
 
         const list = document.getElementById('inventory-list');
         list.innerHTML = `
@@ -556,7 +678,6 @@
                 const img = i.imageUrl || '';
                 const qty = i.quantity || 0;
 
-                // UX POLISH: Added low-stock-card class for the pulsing red glow
                 list.innerHTML += `
                 <div class="card ${isLow ? 'low-stock-card' : ''}">
                     ${isAdmin ? `<button class="edit-icon" onclick="window.openEditModal('${d.id}', '${safeName}', '${i.category}', '${img}')">✏️</button>` : ""}
@@ -575,12 +696,10 @@
         } catch(err) { window.showToast("Load Error"); }
       };
 
-      // UX POLISH: Haptic Feedback and Pop Animations
       window.updateBulkQty = (id, name, act) => { 
         const input = document.getElementById('qty-'+id); const v = parseInt(input.value); if(isNaN(v) || v <= 0) return;
         const display = document.getElementById('val-'+id); let cur = parseInt(display.innerText); let n = act === 'plus' ? cur + v : cur - v;
         
-        // Haptic Patterns
         const isPlus = act === 'plus';
         if(navigator.vibrate) navigator.vibrate(isPlus ? [20] : [20, 40, 20]);
         
@@ -592,36 +711,95 @@
         display.innerText = n; 
         display.style.color = n <= 5 ? 'var(--danger)' : 'var(--primary)';
         
-        // Pop Animation trigger
         display.classList.remove('pop-anim');
-        void display.offsetWidth; // Trigger reflow to restart animation
+        void display.offsetWidth;
         display.classList.add('pop-anim');
         setTimeout(() => { display.classList.remove('pop-anim'); }, 300);
 
-        // Instantly update Stock Pulse on the card
         const cardEl = display.closest('.card');
         if(n <= 5) { cardEl.classList.add('low-stock-card'); } else { cardEl.classList.remove('low-stock-card'); }
 
-        updateDoc(doc(db, "inventory", id), { quantity: n, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() }).catch(e => console.error("Sync Error"));
-        addDoc(collection(db, "logs"), { user: currentUser, userImage: currentUserImage, item: name, action: act === 'plus' ? 'added' : 'took', amount: v, timestamp: Date.now(), dateString: new Date().toLocaleString() }).catch(e => console.error("Log Error"));
+        const nowStr = new Date().toLocaleString();
+        updateDoc(doc(db, "inventory", id), { quantity: n, lastUpdatedBy: currentUser, lastUpdatedTime: nowStr }).catch(e => console.error("Sync Error"));
+        addDoc(collection(db, "logs"), { user: currentUser, item: name, action: act === 'plus' ? 'added' : 'took', amount: v, timestamp: Date.now(), dateString: nowStr }).catch(e => console.error("Log Error"));
       };
       
+      // SHOW HISTORY: NOW INCLUDES MAIN TAB ADMIN TOOLS
       window.showHistory = (fromHistory = false) => {
         if(navigator.vibrate && !fromHistory) navigator.vibrate([20]); 
         if(!fromHistory) history.pushState({page: 'history'}, "");
 
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('history-screen').classList.add('active'); document.getElementById('header-title').innerText = 'History'; document.getElementById('back-btn').classList.remove('hidden'); document.getElementById('logout-btn').classList.add('hidden');
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); 
+        document.getElementById('history-screen').classList.add('active'); 
+        document.getElementById('header-title').innerText = 'History'; 
+        document.getElementById('back-btn').classList.remove('hidden'); 
+        document.getElementById('logout-btn').classList.add('hidden');
+        
+        // Expose action bar only if Admin is logged in
+        const mainActionBar = document.getElementById('main-history-action-bar');
+        if (isAdmin) {
+            mainActionBar.classList.remove('hidden');
+            document.getElementById('btn-main-toggle-log-select').innerText = "☑️ Select Logs";
+            document.getElementById('btn-main-delete-selected-logs').classList.add('hidden');
+        } else {
+            mainActionBar.classList.add('hidden');
+        }
+
         const list = document.getElementById('history-list');
-        list.innerHTML = `
-           <div class="log-card"><div class="log-info"><div class="skeleton skel-title" style="width:80%"></div><div class="skeleton skel-title" style="width:40%; height:12px;"></div></div><div class="skeleton log-avatar"></div></div>
-        `;
-        try {
-            onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(50)), (s) => {
-              list.innerHTML = '';
-              s.forEach(d => { const l = d.data(); list.innerHTML += `<div class="log-card"><div class="log-info"><p class="log-text">${l.user || 'Unknown'} ${l.action === 'added' ? '🟢 Added' : '🔴 Took'} ${l.amount || 0} ${l.item || 'Item'}</p><p class="log-time">${l.dateString || ''}</p></div><img src="${l.userImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="log-avatar"></div>`; });
-            });
-        } catch(err) { console.error("History Crashed"); }
+        if (historyCacheReady) {
+            renderHistoryList(cachedRecentLogs, list, false, isAdmin);
+        } else {
+            list.innerHTML = `<div class="log-card"><div class="log-info"><div class="skeleton skel-title" style="width:80%"></div><div class="skeleton skel-title" style="width:40%; height:12px;"></div></div><div class="skeleton log-avatar"></div></div>`;
+            startBackgroundLogCache();
+        }
       };
+
+      // MAIN TAB: TOGGLE CHECKBOXES
+      document.getElementById('btn-main-toggle-log-select').addEventListener('click', () => {
+          if(navigator.vibrate) navigator.vibrate([20]);
+          const btn = document.getElementById('btn-main-toggle-log-select');
+          const checkboxes = document.querySelectorAll('#history-list .admin-log-cb');
+          const delBtn = document.getElementById('btn-main-delete-selected-logs');
+          
+          if (btn.innerText.includes("Select")) {
+              btn.innerText = "❌ Cancel";
+              checkboxes.forEach(cb => cb.classList.remove('hidden'));
+              delBtn.classList.remove('hidden');
+          } else {
+              btn.innerText = "☑️ Select Logs";
+              checkboxes.forEach(cb => { cb.classList.add('hidden'); cb.checked = false; });
+              delBtn.classList.add('hidden');
+          }
+      });
+
+      // MAIN TAB: EXECUTE DELETION
+      document.getElementById('btn-main-delete-selected-logs').addEventListener('click', async () => {
+          if(navigator.vibrate) navigator.vibrate([20]);
+          const checked = document.querySelectorAll('#history-list .admin-log-cb:checked');
+          if (checked.length === 0) return window.showToast("No logs selected.");
+          if (!confirm(`Delete ${checked.length} logs? This removes the record but keeps stock quantities intact.`)) return;
+
+          const btn = document.getElementById('btn-main-delete-selected-logs');
+          btn.innerText = "⏳ Deleting...";
+          btn.disabled = true;
+
+          try {
+              const batch = writeBatch(db);
+              checked.forEach(cb => { batch.delete(doc(db, "logs", cb.value)); });
+              await batch.commit();
+              window.showToast("Logs Removed!");
+              
+              // Reset buttons (list will auto-refresh via cache listener)
+              btn.innerText = "🗑️ Delete Selected";
+              btn.classList.add('hidden');
+              document.getElementById('btn-main-toggle-log-select').innerText = "☑️ Select Logs";
+          } catch(err) {
+              console.error(err);
+              window.showToast("Error deleting logs.");
+              btn.innerText = "🗑️ Delete Selected";
+              btn.disabled = false;
+          }
+      });
 
       window.switchTab = (id, el) => { 
         if(navigator.vibrate) navigator.vibrate([20]); 
@@ -681,12 +859,13 @@
       window.openEditModal = (id, n, c, i) => { if(navigator.vibrate) navigator.vibrate([20]); document.getElementById('edit-item-id').value = id; document.getElementById('edit-item-name').value = n; document.getElementById('edit-item-category').value = c; currentEditOldImage = i; document.getElementById('edit-modal').classList.add('active'); };
       window.closeEditModal = () => document.getElementById('edit-modal').classList.remove('active');
 
-      document.getElementById('btn-save-logo').addEventListener('click', () => { const f = document.getElementById('logo-image-input').files[0]; if(f) compressImage(f, async (img) => { await setDoc(doc(db, "admin", "settings"), { logoUrl: img }, { merge: true }); window.showToast("Saved!"); }); });
-      document.getElementById('btn-save-header-logo').addEventListener('click', () => { const f = document.getElementById('header-logo-input').files[0]; if(f) compressImage(f, async (img) => { await setDoc(doc(db, "admin", "settings"), { headerLogoUrl: img }, { merge: true }); window.showToast("Saved!"); }); });
-      document.getElementById('btn-save-admin-pic').addEventListener('click', () => { const f = document.getElementById('admin-image-input').files[0]; if(f) compressImage(f, async (img) => { await setDoc(doc(db, "admin", "profile"), { imageUrl: img }); window.showToast("Saved!"); }); });
-      document.getElementById('add-cat-btn').addEventListener('click', () => { const n = document.getElementById('new-cat-name').value, f = document.getElementById('new-cat-image').files[0]; if(n) { compressImage(f, async (img) => { await addDoc(collection(db, "categories"), { name: n, imageUrl: img }); window.showToast("Category Created!"); }); } });
-      document.getElementById('add-item-btn').addEventListener('click', () => { const n = document.getElementById('new-item-name').value, c = document.getElementById('new-item-category').value, q = parseInt(document.getElementById('new-item-qty').value), f = document.getElementById('new-item-image').files[0]; if(n && c && q) { compressImage(f, async (img) => { await addDoc(collection(db, "inventory"), { name: n, category: c, quantity: q, imageUrl: img, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() }); window.showToast("Added!"); }); } });
-      document.getElementById('add-worker-btn').addEventListener('click', () => { const n = document.getElementById('worker-name-input').value, p = document.getElementById('worker-phone-input').value, f = document.getElementById('worker-image').files[0]; if(n && p) { compressImage(f, async (img) => { await addDoc(collection(db, "workers"), { name: n, phone: p, imageUrl: img }); window.showToast("Authorized!"); }); } });
+      document.getElementById('btn-save-logo').addEventListener('click', () => { const f = document.getElementById('logo-image-input').files[0]; if(f) uploadToCloud(f, async (img) => { await setDoc(doc(db, "admin", "settings"), { logoUrl: img }, { merge: true }); window.showToast("Saved to Cloud!"); }); });
+      document.getElementById('btn-save-header-logo').addEventListener('click', () => { const f = document.getElementById('header-logo-input').files[0]; if(f) uploadToCloud(f, async (img) => { await setDoc(doc(db, "admin", "settings"), { headerLogoUrl: img }, { merge: true }); window.showToast("Saved to Cloud!"); }); });
+      document.getElementById('btn-save-admin-pic').addEventListener('click', () => { const f = document.getElementById('admin-image-input').files[0]; if(f) uploadToCloud(f, async (img) => { await setDoc(doc(db, "admin", "profile"), { imageUrl: img }); userAvatarMap["Dipu"] = img; window.showToast("Saved to Cloud!"); }); });
+      document.getElementById('add-cat-btn').addEventListener('click', () => { const n = document.getElementById('new-cat-name').value, f = document.getElementById('new-cat-image').files[0]; if(n) { uploadToCloud(f, async (img) => { await addDoc(collection(db, "categories"), { name: n, imageUrl: img }); window.showToast("Category Created!"); }); } });
+      document.getElementById('add-item-btn').addEventListener('click', () => { const n = document.getElementById('new-item-name').value, c = document.getElementById('new-item-category').value, q = parseInt(document.getElementById('new-item-qty').value), f = document.getElementById('new-item-image').files[0]; if(n && c && q) { uploadToCloud(f, async (img) => { await addDoc(collection(db, "inventory"), { name: n, category: c, quantity: q, imageUrl: img, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() }); window.showToast("Added!"); }); } });
+      document.getElementById('add-worker-btn').addEventListener('click', () => { const n = document.getElementById('worker-name-input').value, p = document.getElementById('worker-phone-input').value, f = document.getElementById('worker-image').files[0]; if(n && p) { uploadToCloud(f, async (img) => { await addDoc(collection(db, "workers"), { name: n, phone: p, imageUrl: img }); if(img) userAvatarMap[n] = img; window.showToast("Authorized!"); }); } });
+      document.getElementById('btn-save-app-icon').addEventListener('click', () => { const file = document.getElementById('app-icon-input').files[0]; if(!file) return; uploadToCloud(file, async (img) => { await setDoc(doc(db, "admin", "settings"), { appIconUrl: img }, { merge: true }); window.showToast("Icon Saved!"); }); });
       
       document.getElementById('btn-delete-worker').addEventListener('click', async () => { const id = document.getElementById('delete-worker-select').value; if(id) { await deleteDoc(doc(db, "workers", id)); window.showToast("Removed"); } });
       document.getElementById('btn-delete-cat').addEventListener('click', async () => { const id = document.getElementById('delete-cat-select').value; if(id) { await deleteDoc(doc(db, "categories", id)); window.showToast("Deleted"); } });
@@ -704,74 +883,242 @@
           btn.innerText = "Yes, Clear All"; btn.disabled = false;
       };
 
-      document.getElementById('save-edit-btn').addEventListener('click', () => { const id = document.getElementById('edit-item-id').value, n = document.getElementById('edit-item-name').value, c = document.getElementById('edit-item-category').value, f = document.getElementById('edit-item-image').files[0]; compressImage(f, async (img) => { await updateDoc(doc(db, "inventory", id), { name: n, category: c, imageUrl: img || currentEditOldImage, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() }); window.showToast("Updated!"); window.closeEditModal(); }); });
-           // EXCEL EXPORT LOGIC (WITH DATE RANGE)
-      document.getElementById('btn-download-logs').addEventListener('click', async () => {
-          if(navigator.vibrate) navigator.vibrate([20]);
-          
-          const startDate = document.getElementById('report-start-date').value;
-          const endDate = document.getElementById('report-end-date').value;
+      document.getElementById('save-edit-btn').addEventListener('click', () => { 
+        const id = document.getElementById('edit-item-id').value, n = document.getElementById('edit-item-name').value, c = document.getElementById('edit-item-category').value, f = document.getElementById('edit-item-image').files[0]; 
+        if (!f) {
+             updateDoc(doc(db, "inventory", id), { name: n, category: c, imageUrl: currentEditOldImage, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() }).then(() => { window.showToast("Updated!"); window.closeEditModal(); });
+        } else {
+             uploadToCloud(f, async (img) => { await updateDoc(doc(db, "inventory", id), { name: n, category: c, imageUrl: img || currentEditOldImage, lastUpdatedBy: currentUser, lastUpdatedTime: new Date().toLocaleString() }); window.showToast("Updated!"); window.closeEditModal(); });
+        }
+      });
 
-          if (!startDate || !endDate) {
-              return window.showToast("Please select both Start and End dates.");
+      // DATABASE AUTO-MIGRATOR
+      window.migrateDatabaseToCloud = async () => {
+          const btn = document.getElementById('btn-migrate-cloud');
+          btn.innerText = "⏳ Scanning Database..."; btn.disabled = true;
+          let migratedCount = 0;
+          
+          const uploadRawBase64 = async (base64Str) => {
+              try {
+                  const base64Data = base64Str.split(',')[1];
+                  const formData = new FormData(); formData.append("image", base64Data);
+                  const response = await fetch(`https://api.imgbb.com/1/upload?key=${atob('MGUyY2Q5YThmZGVmYjNiOWU5ODgwMTI0M2IwYTU3Mjk=')}`, { method: "POST", body: formData });
+                  const data = await response.json();
+                  return data.success ? data.data.url : null;
+              } catch(e) { return null; }
+          };
+
+          try {
+              // 1. Inventory
+              const invSnap = await getDocs(collection(db, "inventory"));
+              for (const d of invSnap.docs) {
+                  const item = d.data();
+                  if (item.imageUrl && item.imageUrl.startsWith('data:image')) {
+                      btn.innerText = `⏳ Migrating Products...`;
+                      const newUrl = await uploadRawBase64(item.imageUrl);
+                      if (newUrl) { await updateDoc(doc(db, "inventory", d.id), { imageUrl: newUrl }); migratedCount++; }
+                  }
+              }
+              // 2. Categories
+              const catSnap = await getDocs(collection(db, "categories"));
+              for (const d of catSnap.docs) {
+                  const cat = d.data();
+                  if (cat.imageUrl && cat.imageUrl.startsWith('data:image')) {
+                      btn.innerText = `⏳ Migrating Categories...`;
+                      const newUrl = await uploadRawBase64(cat.imageUrl);
+                      if (newUrl) { await updateDoc(doc(db, "categories", d.id), { imageUrl: newUrl }); migratedCount++; }
+                  }
+              }
+              // 3. Workers
+              const wSnap = await getDocs(collection(db, "workers"));
+              for (const d of wSnap.docs) {
+                  const w = d.data();
+                  if (w.imageUrl && w.imageUrl.startsWith('data:image')) {
+                      btn.innerText = `⏳ Migrating Workers...`;
+                      const newUrl = await uploadRawBase64(w.imageUrl);
+                      if (newUrl) { await updateDoc(doc(db, "workers", d.id), { imageUrl: newUrl }); migratedCount++; }
+                  }
+              }
+              // 4. Admin Profile & Settings
+              btn.innerText = `⏳ Migrating Admin Assets...`;
+              const pDoc = await getDoc(doc(db, "admin", "profile"));
+              if (pDoc.exists() && pDoc.data().imageUrl && pDoc.data().imageUrl.startsWith('data:image')) {
+                  const newUrl = await uploadRawBase64(pDoc.data().imageUrl);
+                  if (newUrl) { await updateDoc(doc(db, "admin", "profile"), { imageUrl: newUrl }); migratedCount++; }
+              }
+              const sDoc = await getDoc(doc(db, "admin", "settings"));
+              if (sDoc.exists()) {
+                  const s = sDoc.data(); let updates = {};
+                  if (s.logoUrl && s.logoUrl.startsWith('data:image')) updates.logoUrl = await uploadRawBase64(s.logoUrl);
+                  if (s.headerLogoUrl && s.headerLogoUrl.startsWith('data:image')) updates.headerLogoUrl = await uploadRawBase64(s.headerLogoUrl);
+                  if (s.appIconUrl && s.appIconUrl.startsWith('data:image')) updates.appIconUrl = await uploadRawBase64(s.appIconUrl);
+                  
+                  if (Object.keys(updates).length > 0) {
+                      for (let k in updates) { if(!updates[k]) delete updates[k]; else migratedCount++; }
+                      if (Object.keys(updates).length > 0) await updateDoc(doc(db, "admin", "settings"), updates);
+                  }
+              }
+              
+              window.showToast(migratedCount > 0 ? `Migrated ${migratedCount} images! ☁️` : "All images already in cloud! ☁️");
+          } catch (err) {
+              console.error(err);
+              window.showToast("Migration encountered an error.");
+          }
+          
+          btn.innerText = "☁️ Auto-Migrate Images";
+          btn.disabled = false;
+      };
+
+      async function fetchLogsByDateRange() {
+          const startStr = document.getElementById('report-start-date').value;
+          const endStr = document.getElementById('report-end-date').value;
+
+          if (!startStr || !endStr) {
+              window.showToast("Please select both Start and End dates.");
+              return null;
           }
 
-          // Convert dates to exact milliseconds for Firebase
-          const startMillis = new Date(startDate + "T00:00:00").getTime();
-          const endMillis = new Date(endDate + "T23:59:59").getTime();
+          const [sY, sM, sD] = startStr.split('-').map(Number);
+          const [eY, eM, eD] = endStr.split('-').map(Number);
+          
+          const startMillis = new Date(sY, sM - 1, sD, 0, 0, 0, 0).getTime();
+          const endMillis = new Date(eY, eM - 1, eD, 23, 59, 59, 999).getTime();
 
           if (startMillis > endMillis) {
-              return window.showToast("Start date must be before End date.");
+              window.showToast("Start date must be before End date.");
+              return null;
           }
 
+          const snap = await getDocs(collection(db, "logs"));
+          const matchedLogs = [];
+
+          snap.forEach(d => {
+              const l = d.data();
+              l.id = d.id; 
+              let ts = typeof l.timestamp === 'number' ? l.timestamp : Number(l.timestamp);
+              if (!ts && l.dateString) {
+                  const parsed = Date.parse(l.dateString);
+                  if (!isNaN(parsed)) ts = parsed;
+              }
+              if (ts >= startMillis && ts <= endMillis) {
+                  matchedLogs.push({ ...l, _sortTs: ts || 0 });
+              }
+          });
+
+          matchedLogs.sort((a, b) => b._sortTs - a._sortTs);
+          return { logs: matchedLogs, startDate: startStr, endDate: endStr };
+      }
+
+      document.getElementById('btn-view-admin-logs').addEventListener('click', async () => {
+          if(navigator.vibrate) navigator.vibrate([20]);
+          const btn = document.getElementById('btn-view-admin-logs');
+          const resultsBox = document.getElementById('admin-history-results');
+          
+          btn.innerHTML = "⏳ Loading...";
+          btn.disabled = true;
+
+          try {
+              const res = await fetchLogsByDateRange();
+              if (res) {
+                  resultsBox.classList.remove('hidden');
+                  renderHistoryList(res.logs, resultsBox, true, true);
+                  
+                  const actionBar = document.getElementById('admin-history-action-bar');
+                  if (res.logs.length > 0) {
+                      actionBar.classList.remove('hidden');
+                      document.getElementById('btn-toggle-log-select').innerText = "☑️ Select Logs";
+                      document.getElementById('btn-delete-selected-logs').classList.add('hidden');
+                  } else {
+                      actionBar.classList.add('hidden');
+                  }
+              }
+          } catch (err) {
+              console.error("View Logs Failed", err);
+              window.showToast("Error loading logs.");
+          }
+
+          btn.innerHTML = "👁️ View Logs";
+          btn.disabled = false;
+      });
+
+      document.getElementById('btn-toggle-log-select').addEventListener('click', () => {
+          if(navigator.vibrate) navigator.vibrate([20]);
+          const btn = document.getElementById('btn-toggle-log-select');
+          const checkboxes = document.querySelectorAll('#admin-history-results .admin-log-cb');
+          const delBtn = document.getElementById('btn-delete-selected-logs');
+          
+          if (btn.innerText.includes("Select")) {
+              btn.innerText = "❌ Cancel";
+              checkboxes.forEach(cb => cb.classList.remove('hidden'));
+              delBtn.classList.remove('hidden');
+          } else {
+              btn.innerText = "☑️ Select Logs";
+              checkboxes.forEach(cb => { cb.classList.add('hidden'); cb.checked = false; });
+              delBtn.classList.add('hidden');
+          }
+      });
+
+      document.getElementById('btn-delete-selected-logs').addEventListener('click', async () => {
+          if(navigator.vibrate) navigator.vibrate([20]);
+          const checked = document.querySelectorAll('#admin-history-results .admin-log-cb:checked');
+          if (checked.length === 0) return window.showToast("No logs selected.");
+          if (!confirm(`Delete ${checked.length} logs? This removes the record but keeps stock quantities intact.`)) return;
+
+          const btn = document.getElementById('btn-delete-selected-logs');
+          btn.innerText = "⏳ Deleting...";
+          btn.disabled = true;
+
+          try {
+              const batch = writeBatch(db);
+              checked.forEach(cb => { batch.delete(doc(db, "logs", cb.value)); });
+              await batch.commit();
+              window.showToast("Logs Removed!");
+              document.getElementById('btn-view-admin-logs').click();
+          } catch(err) {
+              console.error(err);
+              window.showToast("Error deleting logs.");
+          }
+          btn.innerText = "🗑️ Delete Selected";
+          btn.disabled = false;
+      });
+
+      document.getElementById('btn-download-logs').addEventListener('click', async () => {
+          if(navigator.vibrate) navigator.vibrate([20]);
           const btn = document.getElementById('btn-download-logs');
           const originalText = btn.innerHTML;
           btn.innerHTML = "⏳ Generating...";
           btn.disabled = true;
 
           try {
-              // Filter the database between the two times
-              const q = query(
-                  collection(db, "logs"),
-                  where("timestamp", ">=", startMillis),
-                  where("timestamp", "<=", endMillis),
-                  orderBy("timestamp", "desc")
-              );
-              
-              const snap = await getDocs(q);
-              
-              if (snap.empty) {
-                  window.showToast("No logs found for these dates.");
-                  btn.innerHTML = originalText;
-                  btn.disabled = false;
-                  return;
+              const res = await fetchLogsByDateRange();
+              if (res) {
+                  if (res.logs.length === 0) {
+                      window.showToast("No logs found for these dates.");
+                  } else {
+                      let csvContent = "Date & Time,Worker Name,Action,Quantity,Product Name\n";
+                      
+                      res.logs.forEach(l => {
+                          const date = l.dateString ? l.dateString.replace(/"/g, '""') : '';
+                          const user = l.user ? l.user.replace(/"/g, '""') : 'Unknown';
+                          const action = l.action === 'added' ? 'Added' : 'Took';
+                          const amount = l.amount || 0;
+                          const item = l.item ? l.item.replace(/"/g, '""') : 'Item';
+                          
+                          csvContent += `"${date}","${user}","${action}","${amount}","${item}"\n`;
+                      });
+
+                      const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const link = document.createElement("a");
+                      link.href = URL.createObjectURL(blob);
+                      link.download = `Aja_Cafe_Logs_${res.startDate}_to_${res.endDate}.csv`;
+                      
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      
+                      window.showToast("Report Downloaded!");
+                  }
               }
-
-              // Define Excel columns
-              let csvContent = "Date & Time,Worker Name,Action,Quantity,Product Name\n";
-              
-              snap.forEach(doc => {
-                  const l = doc.data();
-                  const date = l.dateString ? l.dateString.replace(/"/g, '""') : '';
-                  const user = l.user ? l.user.replace(/"/g, '""') : 'Unknown';
-                  const action = l.action === 'added' ? 'Added' : 'Took';
-                  const amount = l.amount || 0;
-                  const item = l.item ? l.item.replace(/"/g, '""') : 'Item';
-                  
-                  csvContent += `"${date}","${user}","${action}","${amount}","${item}"\n`;
-              });
-
-              // Add UTF-8 BOM so Excel reads Arabic characters correctly
-              const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-              const link = document.createElement("a");
-              link.href = URL.createObjectURL(blob);
-              link.download = `Aja_Cafe_Logs_${startDate}_to_${endDate}.csv`;
-              
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              
-              window.showToast("Report Downloaded!");
           } catch (err) {
               console.error("Export Failed", err);
               window.showToast("Error generating report.");
